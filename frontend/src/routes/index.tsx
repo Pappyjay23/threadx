@@ -1,6 +1,7 @@
 import LoginPage from "@/pages/auth/LoginPage";
 import SignupPage from "@/pages/auth/SignupPage";
 import ErrorPage from "@/pages/error/ErrorPage";
+import DashboardPage from "@/pages/home/DashboardPage";
 import LandingPage from "@/pages/landing/LandingPage";
 
 export type RouteConfig = {
@@ -32,16 +33,12 @@ export const routes: RouteConfig[] = [
 	},
 
 	// Protected Routes
-	// {
-	// 	path: "/",
-	// 	element: (
-	// 		<AppLayout>
-	// 			<HomePage />
-	// 		</AppLayout>
-	// 	),
-	// 	isPrivate: true,
-	// 	label: "Home",
-	// },
+	{
+		path: "/",
+		element: <DashboardPage />,
+		isPrivate: true,
+		label: "Home",
+	},
 	// {
 	// 	path: "/note/:id",
 	// 	element: (

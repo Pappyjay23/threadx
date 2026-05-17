@@ -1,8 +1,12 @@
-import { Link } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Link, useNavigate } from "react-router-dom";
 
 const SignupPage = () => {
+	const navigate = useNavigate();
+	const { setIsAuthenticated } = useAuthStore();
+
 	return (
 		<div className='relative min-h-svh bg-[#060415] text-white flex items-center overflow-hidden selection:bg-[#7556d3]/30'>
 			<div className='absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#7556d3]/5 rounded-full blur-[140px] pointer-events-none' />
@@ -99,7 +103,13 @@ const SignupPage = () => {
 								<div className='flex-grow border-t border-white/5'></div>
 							</div>
 
-							<form className='space-y-4' onSubmit={(e) => e.preventDefault()}>
+							<form
+								className='space-y-4'
+								onSubmit={(e) => {
+									e.preventDefault();
+									navigate("/");
+									setIsAuthenticated(true);
+								}}>
 								<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 									<div className='space-y-1.5'>
 										<label
