@@ -2,10 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
-*{
-  font-family: "Google Sans Flex", sans-serif;
+:root {
+	--background: #030018;
+	--foreground: #fff;
+	--muted: #100d22;
+	--primary: #9e7ffb;
+	--secondary: #181030;
+	--font-google-sans-flex: "Google Sans Flex", sans-serif;
 }
 
-body{
-  background-color: #100D22;
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	background-color: var(--background);
+	color: var(--foreground);
+	font-family: var(--font-google-sans-flex);
+	scroll-behavior: auto !important;
+	overscroll-behavior: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+	width: 5px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--background);
+	border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--primary);
+	border-radius: 10px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+	display: none;
+}
+
+.no-scrollbar {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+.text-stroke {
+  -webkit-text-stroke: 2px var(--primary);
+  color: transparent;
+}
+
+.container{
+	max-width: 1200px;
+	margin: auto;
+}
+
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
 }

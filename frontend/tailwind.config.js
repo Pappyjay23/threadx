@@ -2,7 +2,18 @@
 export default {
 	content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
 	theme: {
-		extend: {},
+		extend: {
+			colors: {
+				background: "var(--background)",
+				foreground: "var(--foreground)",
+				muted: "var(--muted)",
+				primary: "var(--primary)",
+				secondary: "var(--secondary)",
+			},
+			fontFamily: {
+				sans: ['"Google Sans Flex"', "sans-serif"],
+			},
+		},
 	},
 	plugins: [],
 };

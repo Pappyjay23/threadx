@@ -1,0 +1,62 @@
+import LoginPage from "@/pages/auth/LoginPage";
+import SignupPage from "@/pages/auth/SignupPage";
+import ErrorPage from "@/pages/error/ErrorPage";
+import LandingPage from "@/pages/landing/LandingPage";
+
+export type RouteConfig = {
+	path: string;
+	element: React.ReactNode;
+	isPrivate?: boolean;
+	label?: string;
+};
+
+export const routes: RouteConfig[] = [
+	// Public Routes
+	{
+		path: "/landing",
+		element: <LandingPage />,
+		isPrivate: false,
+		label: "Landing",
+	},
+	{
+		path: "/login",
+		element: <LoginPage />,
+		isPrivate: false,
+		label: "Login",
+	},
+	{
+		path: "/signup",
+		element: <SignupPage />,
+		isPrivate: false,
+		label: "Sign Up",
+	},
+
+	// Protected Routes
+	// {
+	// 	path: "/",
+	// 	element: (
+	// 		<AppLayout>
+	// 			<HomePage />
+	// 		</AppLayout>
+	// 	),
+	// 	isPrivate: true,
+	// 	label: "Home",
+	// },
+	// {
+	// 	path: "/note/:id",
+	// 	element: (
+	// 		<AppLayout>
+	// 			<SingleNotePage />
+	// 		</AppLayout>
+	// 	),
+	// 	isPrivate: true,
+	// 	label: "Single Note",
+	// },
+
+	// Error Route
+	{
+		path: "*",
+		element: <ErrorPage />,
+		label: "Not Found",
+	},
+];
