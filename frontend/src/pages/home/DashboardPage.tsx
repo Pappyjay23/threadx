@@ -13,7 +13,7 @@ const DashboardPage = () => {
 	const [showHeaderProfile, setShowHeaderProfile] = useState(false);
 
 	return (
-		<div className='flex flex-col md:flex-row h-svh w-screen overflow-hidden bg-[#060415] text-white select-none antialiased'>
+		<div className='flex flex-col lg:flex-row h-svh max-w-300 mx-auto overflow-hidden bg-background text-white select-none antialiased'>
 			<FloatingSidebar
 				activeTab={activeTab}
 				setActiveTab={(tab) => {
