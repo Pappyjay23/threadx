@@ -1,8 +1,9 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { IoEyeOffSharp, IoEyeSharp, IoSearch } from "react-icons/io5";
 
 interface InputProps {
 	id?: string;
+	ref?: React.RefObject<HTMLInputElement | null>;
 	name?: string;
 	value?: string;
 	type?: string;
@@ -20,6 +21,7 @@ const Input = ({
 	id,
 	name,
 	disabled,
+	ref,
 }: InputProps) => {
 	const [togglePassword, setTogglePassword] = useState(false);
 
@@ -33,6 +35,7 @@ const Input = ({
 					type={togglePassword ? "text" : "password"}
 					placeholder={placeholder}
 					disabled={disabled}
+					ref={ref}
 					value={value}
 					onChange={onChange}
 					className={`border-0 outline-none w-[90%] text-xs md:text-sm bg-transparent`}
@@ -61,6 +64,7 @@ const Input = ({
 					type={"text"}
 					placeholder={placeholder}
 					disabled={disabled}
+					ref={ref}
 					value={value}
 					onChange={onChange}
 					className={`border-0 outline-none w-full pl-7 text-xs`}
@@ -76,6 +80,7 @@ const Input = ({
 			type={type}
 			placeholder={placeholder}
 			disabled={disabled}
+			ref={ref}
 			value={value}
 			onChange={onChange}
 			className={`${className} w-full bg-[#0c0926]/60 border border-zinc-800 focus:border-[#7556d3]/60 rounded-lg px-4 py-2.5 text-xs md:text-sm text-white placeholder-zinc-600 outline-none transition-all duration-300`}

@@ -1,25 +1,36 @@
-import { useState, useEffect } from "react";
-import FloatingSidebar from "../../components/navigation/FloatingSidebar";
-import ConversationList from "../../components/chat/ConversationList";
-import ChatActiveArea from "../../components/chat/ChatActiveArea";
-import ProfilePane from "./ProfilePane";
-import type { ActiveTab } from "@/types";
 import ContactList from "@/components/chat/ContactList";
+import useChatStore from "@/store/useChatStore";
+import type { ActiveTab } from "@/types";
 import { isMobile } from "@/utils/helpers";
+import { useEffect, useState } from "react";
+import ChatActiveArea from "../../components/chat/ChatActiveArea";
+import ConversationList from "../../components/chat/ConversationList";
+import FloatingSidebar from "../../components/navigation/FloatingSidebar";
+import ProfilePane from "./ProfilePane";
 
 const DashboardPage = () => {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("chats");
-	const [activeChatId, setActiveChatId] = useState<string | undefined>(
-		undefined,
-	);
 	const [soundEnabled, setSoundEnabled] = useState(true);
 	const [showHeaderProfile, setShowHeaderProfile] = useState(false);
+
+	const { activeChatId, setActiveChatId } = useChatStore();
 
 	useEffect(() => {
 		if (isMobile()) {
 			setActiveChatId(undefined);
 		}
 	}, [activeTab]);
+
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape" && activeChatId) {
+				setActiveChatId(undefined);
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+		return () => document.removeEventListener("keydown", handleKeyDown);
+	}, [activeChatId, setActiveChatId]);
 
 	return (
 		<div className='flex flex-col lg:flex-row h-svh max-w-300 mx-auto overflow-hidden bg-background text-foreground select-none antialiased'>
@@ -55,8 +66,10 @@ const DashboardPage = () => {
 							<div
 								className={`w-full md:w-auto h-full border border-primary/10 rounded-[20px] overflow-hidden ${activeChatId ? "hidden md:block" : "block"}`}>
 								<ContactList
-									onSelectChat={(id) => setActiveChatId(id)}
-									activeChatId={activeChatId}
+									onSelectChat={(id) => {
+										setActiveChatId(id);
+										setActiveTab("chats");
+									}}
 								/>
 							</div>
 						)}

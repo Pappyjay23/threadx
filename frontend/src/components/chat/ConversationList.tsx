@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { BsPin } from "react-icons/bs";
 import { FiPlus, FiSearch } from "react-icons/fi";
 import { IoSearchOutline, IoCloseOutline } from "react-icons/io5";
@@ -6,6 +6,7 @@ import Input from "../ui/Input";
 import PresenceAvatar from "./PresenceAvatar";
 import type { ActiveTab } from "@/types";
 import EmptyState from "../shared/EmptyState";
+import useChatStore from "@/store/useChatStore";
 
 interface ConversationListProps {
 	onSelectChat: (id: string) => void;
@@ -20,54 +21,19 @@ const ConversationList = ({
 }: ConversationListProps) => {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const searchRef = useRef<HTMLInputElement | null>(null);
 
-	const mockChats = [
-		{
-			id: "1",
-			name: "Ann Schleifer",
-			image:
-				"https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-			message: "Hey! Did you check out that new...",
-			unread: 0,
-			isOnline: true,
-			typing: false,
-			isPinned: true,
-			lastUpdated: "10:00 AM",
-		},
-		{
-			id: "2",
-			name: "Hussein Saddam",
-			image: "",
-			message: "Typing...",
-			unread: 3,
-			isOnline: true,
-			typing: true,
-			isPinned: true,
-			lastUpdated: "9:30 AM",
-		},
-		{
-			id: "3",
-			name: "Vladimir Basuki",
-			image: "",
-			message: "Nice! I have been wanting to...",
-			unread: 0,
-			isOnline: false,
-			typing: false,
-			isPinned: false,
-			lastUpdated: "9:00 AM",
-		},
-	];
+	const { chats } = useChatStore();
 
 	const filteredChats = useMemo(() => {
-		return mockChats.filter(
+		return chats.filter(
 			(chat) =>
 				chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				chat.message.toLowerCase().includes(searchQuery.toLowerCase()),
 		);
-	}, [searchQuery]);
+	}, [searchQuery, chats]);
 
 	const handleCloseSearch = () => {
-		// setIsSearchOpen(false);
 		setSearchQuery("");
 	};
 
@@ -84,7 +50,10 @@ const ConversationList = ({
 						<FiPlus className='text-base' />
 					</button>
 					<button
-						onClick={() => setIsSearchOpen(!isSearchOpen)}
+						onClick={() => {
+							setIsSearchOpen(!isSearchOpen);
+							searchRef.current?.focus();
+						}}
 						className={`p-2 border rounded-full transition-all duration-500 ease-in-out cursor-pointer ${
 							isSearchOpen
 								? "text-[#a286f7] border-[#7556d3]/50 bg-[#7556d3]/10"
@@ -103,6 +72,7 @@ const ConversationList = ({
 				}`}>
 				<div className='relative flex items-center'>
 					<Input
+						ref={searchRef}
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
 						placeholder='Search chats...'
@@ -126,7 +96,9 @@ const ConversationList = ({
 						return (
 							<div
 								key={chat.id}
-								onClick={() => onSelectChat(chat.id)}
+								onClick={() => {
+									onSelectChat(chat.id);
+								}}
 								className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all duration-150 ${
 									isActive
 										? "bg-[#7556d3]/20 border border-[#7556d3]/30"
