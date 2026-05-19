@@ -6,3 +6,5 @@ export const getInitials = (name: string) => {
 		return names[0].charAt(0) + names[1].charAt(0);
 	}
 };
+
+export const isMobile = () => typeof window !== "undefined" && window.matchMedia('(max-width: 767px)').matches;

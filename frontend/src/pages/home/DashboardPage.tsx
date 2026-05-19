@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FloatingSidebar from "../../components/navigation/FloatingSidebar";
 import ConversationList from "../../components/chat/ConversationList";
 import ChatActiveArea from "../../components/chat/ChatActiveArea";
 import ProfilePane from "./ProfilePane";
 import type { ActiveTab } from "@/types";
 import ContactList from "@/components/chat/ContactList";
+import { isMobile } from "@/utils/helpers";
 
 const DashboardPage = () => {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("chats");
@@ -14,6 +15,12 @@ const DashboardPage = () => {
 	const [soundEnabled, setSoundEnabled] = useState(true);
 	const [showHeaderProfile, setShowHeaderProfile] = useState(false);
 
+	useEffect(() => {
+		if (isMobile()) {
+			setActiveChatId(undefined);
+		}
+	}, [activeTab]);
+
 	return (
 		<div className='flex flex-col lg:flex-row h-svh max-w-300 mx-auto overflow-hidden bg-background text-foreground select-none antialiased'>
 			<FloatingSidebar
@@ -21,6 +28,9 @@ const DashboardPage = () => {
 				setActiveTab={(tab) => {
 					setActiveTab(tab);
 					setShowHeaderProfile(false);
+					if (isMobile()) {
+						setActiveChatId(undefined);
+					}
 				}}
 				soundEnabled={soundEnabled}
 				setSoundEnabled={setSoundEnabled}
