@@ -63,7 +63,7 @@ const Input = ({
 					disabled={disabled}
 					value={value}
 					onChange={onChange}
-					className={`border-0 outline-none w-full pl-7 text-xs md:text-sm`}
+					className={`border-0 outline-none w-full pl-7 text-xs`}
 				/>
 			</div>
 		);

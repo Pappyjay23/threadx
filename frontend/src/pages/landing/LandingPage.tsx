@@ -5,8 +5,8 @@ const LandingPage = () => {
 	return (
 		<div className='relative min-h-svh bg-[#060415] text-white flex items-center overflow-hidden selection:bg-[#7556d3]/30'>
 			{/* Ambient Premium Glow Layer */}
-			<div className='absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#7556d3]/10 rounded-full blur-[120px] pointer-events-none' />
-			<div className='absolute bottom-1/4 right-10 w-[600px] h-[600px] bg-[#6347b7]/5 rounded-full blur-[150px] pointer-events-none' />
+			<div className='absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-125 h-125 bg-[#7556d3]/10 rounded-full blur-[120px] pointer-events-none' />
+			<div className='absolute bottom-1/4 right-10 w-150 h-150 bg-[#6347b7]/5 rounded-full blur-[150px] pointer-events-none' />
 
 			<div className='container mx-auto px-6 md:px-12 xl:px-16 w-full z-10 py-12 lg:py-0'>
 				<div className='grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center'>
@@ -24,13 +24,13 @@ const LandingPage = () => {
 
 						<h1 className='text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tighter leading-[1.05] text-white'>
 							Your workspace for{" "}
-							<span className='text-transparent bg-clip-text bg-gradient-to-r from-[#a286f7] to-[#7556d3]'>
+							<span className='text-transparent bg-clip-text bg-linear-to-r from-[#a286f7] to-[#7556d3]'>
 								structured
 							</span>{" "}
 							conversation.
 						</h1>
 
-						<p className='text-sm text-[#fff]/50 font-normal leading-relaxed max-w-md'>
+						<p className='text-sm text-foreground/50 font-normal leading-relaxed max-w-md'>
 							Connect your teams inside a real-time messaging workspace built
 							for persistent engineering, advanced search capabilities, and
 							noise-free threads.
@@ -54,9 +54,9 @@ const LandingPage = () => {
 
 					<div className='lg:col-span-7 flex justify-center lg:justify-end w-full relative group'>
 						{/* Decorative Background Accent for Image */}
-						<div className='absolute inset-0 bg-gradient-to-tr from-[#7556d3]/10 to-transparent rounded-[24px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none' />
+						<div className='absolute inset-0 bg-linear-to-tr from-[#7556d3]/10 to-transparent rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none' />
 
-						<div className='relative w-full max-w-[680px] rounded-[18px] border border-white/5 bg-[#0e0b24]/40 p-2 backdrop-blur-md shadow-2xl transition-all duration-500 hover:border-white/10 hover:scale-[1.01]'>
+						<div className='relative w-full max-w-170 rounded-[18px] border border-white/5 bg-[#0e0b24]/40 p-2 backdrop-blur-md shadow-2xl transition-all duration-500 hover:border-white/10 hover:scale-[1.01]'>
 							{/* Window Top Bar Emulation */}
 							<div className='flex items-center gap-1.5 px-3 pt-1 pb-3 border-b border-white/5'>
 								<div className='w-2.5 h-2.5 rounded-full bg-green-500' />
@@ -64,7 +64,7 @@ const LandingPage = () => {
 								<div className='w-2.5 h-2.5 rounded-full bg-red-500' />
 							</div>
 
-							<div className='overflow-hidden rounded-b-[12px] bg-[#060415]'>
+							<div className='overflow-hidden rounded-b-xl bg-[#060415]'>
 								<img
 									src='dashboard.png'
 									alt='ThreadX Interactive Architecture Dashboard Preview'

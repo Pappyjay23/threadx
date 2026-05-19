@@ -1,13 +1,13 @@
+import type { ActiveTab } from "@/types";
 import { FiLogOut, FiVolume2, FiVolumeX } from "react-icons/fi";
 import { IoChatbubblesOutline } from "react-icons/io5";
 import { RxPeople } from "react-icons/rx";
 
 interface FloatingSidebarProps {
-	activeTab: "chats" | "profile";
-	setActiveTab: (tab: "chats" | "profile") => void;
+	activeTab: ActiveTab;
+	setActiveTab: (tab: ActiveTab) => void;
 	soundEnabled: boolean;
 	setSoundEnabled: (enabled: boolean) => void;
-	onOpenContacts: () => void;
 	onLogout: () => void;
 }
 
@@ -16,7 +16,6 @@ const FloatingSidebar = ({
 	setActiveTab,
 	soundEnabled,
 	setSoundEnabled,
-	onOpenContacts,
 	onLogout,
 }: FloatingSidebarProps) => {
 	const navItems = [
@@ -32,8 +31,8 @@ const FloatingSidebar = ({
 		{
 			key: "contacts",
 			label: "Contacts",
-			onClick: onOpenContacts,
-			active: false,
+			onClick: () => setActiveTab("contacts"),
+			active: activeTab === "contacts",
 			icon: <RxPeople className='text-sm md:text-base lg:text-lg' />,
 		},
 		{
@@ -50,7 +49,7 @@ const FloatingSidebar = ({
 	];
 
 	return (
-		<div className='lg:h-svh lg:w-20 z-30 flex lg:flex-col items-center justify-center p-4 lg:px-8'>
+		<div className='lg:h-svh lg:w-20 z-30 flex lg:flex-col items-center justify-center px-4 py-2 lg:px-8'>
 			<div className='bg-muted/50 rounded-[100px] p-1 border border-primary/10'>
 				<div className='bg-muted/70 rounded-[100px] p-1 flex flex-row lg:flex-col items-center gap-2'>
 					<button className='p-0.5 rounded-full text-white/40 hover:text-white/80 hover:bg-white/5 transition-all duration-300 ease-in-out cursor-pointer border-primary/50 border'>
