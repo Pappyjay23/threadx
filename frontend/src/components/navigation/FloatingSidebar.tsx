@@ -52,7 +52,9 @@ const FloatingSidebar = ({
 		<div className='lg:h-svh lg:w-20 z-30 flex lg:flex-col items-center justify-center px-4 py-2 lg:px-8'>
 			<div className='bg-muted/50 rounded-[100px] p-1 border border-primary/10'>
 				<div className='bg-muted/70 rounded-[100px] p-1 flex flex-row lg:flex-col items-center gap-2'>
-					<button className='p-0.5 rounded-full text-white/40 hover:text-white/80 hover:bg-white/5 transition-all duration-300 ease-in-out cursor-pointer border-primary/50 border'>
+					<button
+						onClick={() => setActiveTab("chats")}
+						className='p-0.5 rounded-full text-white/40 hover:text-white/80 hover:bg-white/5 transition-all duration-300 ease-in-out cursor-pointer border-primary/50 border'>
 						<img
 							src='logo.png'
 							alt='ThreadX Icon'

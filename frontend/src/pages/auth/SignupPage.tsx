@@ -9,8 +9,8 @@ const SignupPage = () => {
 
 	return (
 		<div className='relative min-h-svh bg-[#060415] text-white flex items-center overflow-hidden selection:bg-[#7556d3]/30'>
-			<div className='absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#7556d3]/5 rounded-full blur-[140px] pointer-events-none' />
-			<div className='absolute bottom-12 right-1/4 w-[400px] h-[400px] bg-[#6347b7]/5 rounded-full blur-[120px] pointer-events-none' />
+			<div className='absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-[#7556d3]/5 rounded-full blur-[140px] pointer-events-none' />
+			<div className='absolute bottom-12 right-1/4 w-100 h-100 bg-[#6347b7]/5 rounded-full blur-[120px] pointer-events-none' />
 
 			<div className='container mx-auto px-4 md:px-12 xl:px-16 w-full z-10 py-6 lg:py-0'>
 				<div className='grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center'>
@@ -45,7 +45,7 @@ const SignupPage = () => {
 					</div>
 
 					<div className='col-span-1 lg:col-span-7 flex justify-center lg:justify-end w-full'>
-						<div className='w-full max-w-[460px] rounded-[24px] border border-white/5 bg-[#0e0b24]/30 p-8 md:p-10 backdrop-blur-xl shadow-2xl'>
+						<div className='w-full max-w-115 rounded-3xl border border-white/5 bg-[#0e0b24]/30 p-8 md:p-10 backdrop-blur-xl shadow-2xl'>
 							{/* Mobile-Only Header Navigation */}
 							<div className='flex lg:hidden items-center justify-center mb-8'>
 								<Link
@@ -55,7 +55,7 @@ const SignupPage = () => {
 										<img
 											src='logo.png'
 											alt='ThreadX'
-											className='h-8 w-8 rounded-[8px] object-contain'
+											className='h-8 w-8 rounded-lg object-contain'
 										/>
 										<span className='text-xl font-bold tracking-tighter'>
 											ThreadX
@@ -96,11 +96,11 @@ const SignupPage = () => {
 							</button>
 
 							<div className='relative flex items-center my-6'>
-								<div className='flex-grow border-t border-white/5'></div>
-								<span className='flex-shrink mx-4 text-[10px] uppercase font-bold tracking-widest text-zinc-500 select-none'>
+								<div className='grow border-t border-white/5'></div>
+								<span className='shrink mx-4 text-[10px] uppercase font-bold tracking-widest text-zinc-500 select-none'>
 									or configure mail
 								</span>
-								<div className='flex-grow border-t border-white/5'></div>
+								<div className='grow border-t border-white/5'></div>
 							</div>
 
 							<form
@@ -169,7 +169,7 @@ const SignupPage = () => {
 
 								<Button
 									type='submit'
-									className='w-full !mt-10 md:mt-6 py-3 shadow-lg shadow-[#7556d3]/10 text-xs'>
+									className='w-full mt-10! md:mt-6 py-3 shadow-lg shadow-[#7556d3]/10 text-xs'>
 									Create Account
 								</Button>
 							</form>

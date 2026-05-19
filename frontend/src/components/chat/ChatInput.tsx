@@ -5,6 +5,7 @@ import { FiImage } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
 import ChatTextArea from "./ChatTextArea";
 import useChatStore from "@/store/useChatStore";
+import { isMobile } from "@/utils/helpers";
 
 interface ChatInputProps {
 	onSendMessage: (text: string) => void;
@@ -72,6 +73,7 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 		if (!activeChatId) return;
 
 		requestAnimationFrame(() => {
+			if(isMobile()) return
 			textareaRef.current?.focus();
 		});
 	}, [activeChatId]);
