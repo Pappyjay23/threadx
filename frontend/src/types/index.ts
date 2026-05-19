@@ -1,0 +1,1 @@
+export type ActiveTab = "chats" | "contacts" | "profile";

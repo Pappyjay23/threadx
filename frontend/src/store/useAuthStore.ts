@@ -1,6 +1,16 @@
 import { create } from "zustand";
 
-export const useAuthStore = create(() => ({
-	isAuthenticated: false,
+type AuthStore = {
+	isAuthenticated: boolean;
+	isLoading: boolean;
+	setIsAuthenticated: (isAuthenticated: boolean) => void;
+	setIsLoading: (isLoading: boolean) => void;
+};
+
+export const useAuthStore = create<AuthStore>((set) => ({
+	isAuthenticated: true,
 	isLoading: false,
+	setIsAuthenticated: (isAuthenticated: boolean) =>
+		set(() => ({ isAuthenticated })),
+	setIsLoading: (isLoading: boolean) => set(() => ({ isLoading })),
 }));
