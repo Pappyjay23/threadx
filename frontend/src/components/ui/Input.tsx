@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { forwardRef, useState } from "react";
 import { IoEyeOffSharp, IoEyeSharp, IoSearch } from "react-icons/io5";
 
 interface InputProps {
@@ -13,84 +13,90 @@ interface InputProps {
 	disabled?: boolean;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
-const Input = ({
-	type = "text",
-	placeholder = "",
-	onChange,
-	className,
-	value,
-	id,
-	name,
-	disabled,
-	ref,
-	onKeyDown,
-}: InputProps) => {
-	const [togglePassword, setTogglePassword] = useState(false);
+const Input = forwardRef<HTMLInputElement, InputProps>(
+	(
+		{
+			type = "text",
+			placeholder = "",
+			className = "",
+			disabled,
+			onChange,
+			onKeyDown,
+			value,
+			id,
+			name,
+		},
+		ref,
+	) => {
+		const [togglePassword, setTogglePassword] = useState(false);
 
-	if (type === "password") {
-		return (
-			<div
-				className={`w-full bg-[#0c0926]/60 border border-zinc-800 focus:border-[#7556d3]/60 rounded-lg px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none transition-all duration-300 relative ${className}`}>
-				<input
-					id={id}
-					name={name}
-					type={togglePassword ? "text" : "password"}
-					placeholder={placeholder}
-					disabled={disabled}
-					ref={ref}
-					value={value}
-					onChange={onChange}
-					onKeyDown={onKeyDown}
-					className={`border-0 outline-none w-[90%] text-xs md:text-sm bg-transparent`}
-				/>
+		if (type === "password") {
+			return (
 				<div
-					onClick={() => setTogglePassword((prev) => !prev)}
-					className='absolute right-4 top-[50%] translate-y-[-50%] z-5 cursor-pointer'>
-					{togglePassword ? <IoEyeSharp /> : <IoEyeOffSharp />}
+					className={`w-full bg-[#0c0926]/60 border border-zinc-800 focus-within::border-[#7556d3]/60 rounded-lg px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none transition-all duration-300 relative ${className}`}>
+					<input
+						id={id}
+						name={name}
+						type={togglePassword ? "text" : "password"}
+						placeholder={placeholder}
+						disabled={disabled}
+						ref={ref}
+						value={value}
+						onChange={onChange}
+						onKeyDown={onKeyDown}
+						className={`border-0 outline-none w-[90%] text-xs md:text-sm bg-transparent`}
+					/>
+					<button
+						type='button'
+						tabIndex={-1}
+						onClick={() => setTogglePassword((prev) => !prev)}
+						aria-label={togglePassword ? "Hide password" : "Show password"}>
+						{togglePassword ? <IoEyeSharp /> : <IoEyeOffSharp />}
+					</button>
 				</div>
-			</div>
-		);
-	}
+			);
+		}
 
-	if (type === "search") {
-		return (
-			<div
-				className={`w-full bg-[#0c0926]/60 border border-zinc-800 focus:border-[#7556d3]/60 rounded-lg px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none transition-all duration-300 relative ${className}`}>
+		if (type === "search") {
+			return (
 				<div
-					onClick={() => setTogglePassword((prev) => !prev)}
-					className='absolute left-4 top-[50%] translate-y-[-50%] z-5 cursor-pointer'>
-					<IoSearch />
+					className={`w-full bg-[#0c0926]/60 border border-zinc-800 focus-within::border-[#7556d3]/60 rounded-lg px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none transition-all duration-300 relative ${className}`}>
+					<div className='absolute left-4 top-[50%] translate-y-[-50%] z-5 pointer-events-none'>
+						<IoSearch />
+					</div>
+					<input
+						id={id}
+						name={name}
+						type={"text"}
+						placeholder={placeholder}
+						disabled={disabled}
+						ref={ref}
+						value={value}
+						onChange={onChange}
+						onKeyDown={onKeyDown}
+						className={`border-0 outline-none w-full pl-7 text-xs`}
+					/>
 				</div>
-				<input
-					id={id}
-					name={name}
-					type={"text"}
-					placeholder={placeholder}
-					disabled={disabled}
-					ref={ref}
-					value={value}
-					onChange={onChange}
-					onKeyDown={onKeyDown}
-					className={`border-0 outline-none w-full pl-7 text-xs`}
-				/>
-			</div>
-		);
-	}
+			);
+		}
 
-	return (
-		<input
-			id={id}
-			name={name}
-			type={type}
-			placeholder={placeholder}
-			disabled={disabled}
-			ref={ref}
-			value={value}
-			onChange={onChange}
-			onKeyDown={onKeyDown}
-			className={`${className} w-full bg-[#0c0926]/60 border border-zinc-800 focus:border-[#7556d3]/60 rounded-lg px-4 py-2.5 text-xs md:text-sm text-white placeholder-zinc-600 outline-none transition-all duration-300`}
-		/>
-	);
-};
+		return (
+			<input
+				id={id}
+				name={name}
+				type={type}
+				placeholder={placeholder}
+				disabled={disabled}
+				ref={ref}
+				value={value}
+				onChange={onChange}
+				onKeyDown={onKeyDown}
+				className={`${className} w-full bg-[#0c0926]/60 border border-zinc-800 focus:border-[#7556d3]/60 rounded-lg px-4 py-2.5 text-xs md:text-sm text-white placeholder-zinc-600 outline-none transition-all duration-300`}
+			/>
+		);
+	},
+);
+
+Input.displayName = "Input";
 
 export default Input;

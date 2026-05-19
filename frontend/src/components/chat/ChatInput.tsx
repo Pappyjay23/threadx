@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { BsEmojiSmileFill } from "react-icons/bs";
 import { FiImage } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
-import Input from "../ui/Input";
+import ChatTextArea from "./ChatTextArea";
 
 interface ChatInputProps {
 	onSendMessage: (text: string) => void;
@@ -42,7 +42,16 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 		e.preventDefault();
 		if (!text.trim()) return;
 		onSendMessage(text);
+		alert(text);
 		setText("");
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		// If user hits Enter without holding Shift, run instant submit
+		if (e.key === "Enter" && !e.shiftKey) {
+			e.preventDefault();
+			handleSubmit(e);
+		}
 	};
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,15 +97,15 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 				</button>
 
 				<div className='relative flex-1'>
-					<Input
-						type='text'
-						placeholder='Type your message here...'
-						className='rounded-full! w-full! border-primary/40! text-xs! pr-10'
+					<ChatTextArea
 						value={text}
+						placeholder='Type your message here...'
+						className='pr-4'
 						onChange={(e) => {
 							setText(e.target.value);
 							playKeySound();
 						}}
+						onKeyDown={handleKeyDown}
 					/>
 				</div>
 
