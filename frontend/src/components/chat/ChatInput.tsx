@@ -4,6 +4,7 @@ import { BsEmojiSmileFill } from "react-icons/bs";
 import { FiImage } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
 import ChatTextArea from "./ChatTextArea";
+import useChatStore from "@/store/useChatStore";
 
 interface ChatInputProps {
 	onSendMessage: (text: string) => void;
@@ -11,6 +12,10 @@ interface ChatInputProps {
 }
 
 const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
+	const { activeChatId } = useChatStore();
+
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+
 	const [text, setText] = useState("");
 	const [showPicker, setShowPicker] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,19 +43,21 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 		audio.play().catch(() => {});
 	}, [soundEnabled]);
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
+	const sendMessage = () => {
 		if (!text.trim()) return;
 		onSendMessage(text);
-		alert(text);
 		setText("");
 	};
 
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		sendMessage();
+	};
+
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-		// If user hits Enter without holding Shift, run instant submit
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
-			handleSubmit(e);
+			sendMessage();
 		}
 	};
 
@@ -60,6 +67,14 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 			// TODO: handle asset staging / instant upload
 		}
 	};
+
+	useEffect(() => {
+		if (!activeChatId) return;
+
+		requestAnimationFrame(() => {
+			textareaRef.current?.focus();
+		});
+	}, [activeChatId]);
 
 	return (
 		<form
@@ -98,6 +113,7 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 
 				<div className='relative flex-1'>
 					<ChatTextArea
+						ref={textareaRef}
 						value={text}
 						placeholder='Type your message here...'
 						className='pr-4'

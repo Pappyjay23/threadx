@@ -4,6 +4,7 @@ import EmptyState from "../shared/EmptyState";
 import ChatBubble from "./ChatBubble";
 import ChatInput from "./ChatInput";
 import PresenceAvatar from "./PresenceAvatar";
+import { toast } from "sonner";
 
 interface ChatActiveAreaProps {
 	chatId?: string;
@@ -118,6 +119,7 @@ const ChatActiveArea = ({
 
 			<ChatInput
 				onSendMessage={(text) => {
+					toast.info(text);
 					console.log(text);
 				}}
 				soundEnabled={soundEnabled}

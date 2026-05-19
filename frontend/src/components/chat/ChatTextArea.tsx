@@ -1,48 +1,44 @@
-import React, { useEffect, useRef } from "react";
+import React, { forwardRef, useEffect, useRef } from "react";
 
-interface ChatTextareaProps {
+interface ChatTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
 	value: string;
-	placeholder?: string;
-	disabled?: boolean;
 	className?: string;
-	onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-	onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
-const ChatTextarea = ({
-	value,
-	placeholder,
-	disabled,
-	className = "",
-	onChange,
-	onKeyDown,
-}: ChatTextareaProps) => {
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
+const ChatTextarea = forwardRef<HTMLTextAreaElement, ChatTextareaProps>(
+	({ value, className = "", ...props }, ref) => {
+		const innerRef = useRef<HTMLTextAreaElement | null>(null);
 
-	const resizeTextarea = () => {
-		const el = textareaRef.current;
-		if (!el) return;
+		const handleRef = (node: HTMLTextAreaElement | null) => {
+			innerRef.current = node;
 
-		el.style.height = "auto";
-		el.style.height = `${el.scrollHeight}px`;
-	};
+			if (typeof ref === "function") {
+				ref(node);
+			} else if (ref) {
+				ref.current = node;
+			}
+		};
 
-	useEffect(() => {
-		resizeTextarea();
-	}, [value]);
+		useEffect(() => {
+			const el = innerRef.current;
+			if (!el) return;
 
-	return (
-		<textarea
-			ref={textareaRef}
-			rows={1}
-			value={value}
-			placeholder={placeholder}
-			disabled={disabled}
-			onChange={onChange}
-			onKeyDown={onKeyDown}
-			className={`w-full border border-primary/40 focus:border-primary/60 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder-zinc-600 outline-none transition-all duration-300 resize-none overflow-y-auto min-h-10 max-h-30 block ${className}`}
-		/>
-	);
-};
+			el.style.height = "auto";
+			el.style.height = `${el.scrollHeight}px`;
+		}, [value]);
+
+		return (
+			<textarea
+				ref={handleRef}
+				rows={1}
+				value={value}
+				className={`w-full border border-primary/40 focus:border-primary/60 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder-zinc-600 outline-none transition-all duration-300 resize-none overflow-y-auto min-h-10 max-h-30 block ${className}`}
+				{...props}
+			/>
+		);
+	},
+);
+
+ChatTextarea.displayName = "ChatTextarea";
 
 export default ChatTextarea;
