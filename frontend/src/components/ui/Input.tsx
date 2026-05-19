@@ -11,6 +11,7 @@ interface InputProps {
 	onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 	className?: string;
 	disabled?: boolean;
+	onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 const Input = ({
 	type = "text",
@@ -22,6 +23,7 @@ const Input = ({
 	name,
 	disabled,
 	ref,
+	onKeyDown,
 }: InputProps) => {
 	const [togglePassword, setTogglePassword] = useState(false);
 
@@ -38,6 +40,7 @@ const Input = ({
 					ref={ref}
 					value={value}
 					onChange={onChange}
+					onKeyDown={onKeyDown}
 					className={`border-0 outline-none w-[90%] text-xs md:text-sm bg-transparent`}
 				/>
 				<div
@@ -67,6 +70,7 @@ const Input = ({
 					ref={ref}
 					value={value}
 					onChange={onChange}
+					onKeyDown={onKeyDown}
 					className={`border-0 outline-none w-full pl-7 text-xs`}
 				/>
 			</div>
@@ -83,6 +87,7 @@ const Input = ({
 			ref={ref}
 			value={value}
 			onChange={onChange}
+			onKeyDown={onKeyDown}
 			className={`${className} w-full bg-[#0c0926]/60 border border-zinc-800 focus:border-[#7556d3]/60 rounded-lg px-4 py-2.5 text-xs md:text-sm text-white placeholder-zinc-600 outline-none transition-all duration-300`}
 		/>
 	);

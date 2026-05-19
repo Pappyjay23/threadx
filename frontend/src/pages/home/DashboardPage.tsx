@@ -2,7 +2,7 @@ import ContactList from "@/components/chat/ContactList";
 import useChatStore from "@/store/useChatStore";
 import type { ActiveTab } from "@/types";
 import { isMobile } from "@/utils/helpers";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatActiveArea from "../../components/chat/ChatActiveArea";
 import ConversationList from "../../components/chat/ConversationList";
 import FloatingSidebar from "../../components/navigation/FloatingSidebar";
@@ -12,13 +12,15 @@ const DashboardPage = () => {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("chats");
 	const [soundEnabled, setSoundEnabled] = useState(true);
 	const [showHeaderProfile, setShowHeaderProfile] = useState(false);
+	const tabChangedByNavRef = useRef(false);
 
 	const { activeChatId, setActiveChatId } = useChatStore();
 
 	useEffect(() => {
-		if (isMobile()) {
+		if (isMobile() && tabChangedByNavRef.current) {
 			setActiveChatId(undefined);
 		}
+		tabChangedByNavRef.current = false;
 	}, [activeTab]);
 
 	useEffect(() => {
@@ -32,28 +34,28 @@ const DashboardPage = () => {
 		return () => document.removeEventListener("keydown", handleKeyDown);
 	}, [activeChatId, setActiveChatId]);
 
+	const handleNavTabChange = (tab: ActiveTab) => {
+		tabChangedByNavRef.current = true;
+		setActiveTab(tab);
+		// setShowHeaderProfile(false);
+	};
+
 	return (
-		<div className='flex flex-col lg:flex-row h-svh max-w-300 mx-auto overflow-hidden bg-background text-foreground select-none antialiased'>
+		<div className='flex flex-col lg:flex-row h-svh max-h-dvh max-w-300 mx-auto bg-background text-foreground select-none antialiased overflow-hidden'>
 			<FloatingSidebar
 				activeTab={activeTab}
-				setActiveTab={(tab) => {
-					setActiveTab(tab);
-					setShowHeaderProfile(false);
-					if (isMobile()) {
-						setActiveChatId(undefined);
-					}
-				}}
+				setActiveTab={handleNavTabChange}
 				soundEnabled={soundEnabled}
 				setSoundEnabled={setSoundEnabled}
 				onLogout={() => {}}
 			/>
 
-			<main className='flex-1 md:py-6 px-2 flex h-full relative'>
+			<main className='flex-1 min-h-0 md:py-6 px-2 pb-2 flex relative'>
 				{!showHeaderProfile && (
-					<div className='flex gap-5 lg:gap-10 flex-1 h-full w-full relative'>
+					<div className='flex gap-5 lg:gap-10 flex-1 min-h-0 w-full relative'>
 						{activeTab === "chats" && (
 							<div
-								className={`w-full md:w-auto h-full border border-primary/10 rounded-[20px] overflow-hidden ${activeChatId ? "hidden md:block" : "block"}`}>
+								className={`w-full md:w-auto min-h-0 border border-primary/10 rounded-[20px] overflow-hidden ${activeChatId ? "hidden md:block" : "block"}`}>
 								<ConversationList
 									onSelectChat={(id) => setActiveChatId(id)}
 									activeChatId={activeChatId}
@@ -64,7 +66,7 @@ const DashboardPage = () => {
 
 						{activeTab === "contacts" && (
 							<div
-								className={`w-full md:w-auto h-full border border-primary/10 rounded-[20px] overflow-hidden ${activeChatId ? "hidden md:block" : "block"}`}>
+								className={`w-full md:w-auto min-h-0 border border-primary/10 rounded-[20px] overflow-hidden ${activeChatId ? "hidden md:block" : "block"}`}>
 								<ContactList
 									onSelectChat={(id) => {
 										setActiveChatId(id);
@@ -73,8 +75,9 @@ const DashboardPage = () => {
 								/>
 							</div>
 						)}
+
 						<div
-							className={`flex-1 h-full w-full border border-primary/10 rounded-[20px] overflow-hidden ${!activeChatId ? "hidden md:flex" : "flex"}`}>
+							className={`flex-1 min-h-0 w-full border border-primary/10 rounded-[20px] overflow-hidden ${!activeChatId ? "hidden md:flex" : "flex"}`}>
 							<ChatActiveArea
 								chatId={activeChatId}
 								onCloseChat={() => setActiveChatId(undefined)}

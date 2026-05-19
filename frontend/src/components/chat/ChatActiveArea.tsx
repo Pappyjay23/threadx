@@ -12,6 +12,30 @@ interface ChatActiveAreaProps {
 	onOpenHeaderProfile: () => void;
 }
 
+const mockMessages = [
+	{
+		id: "1",
+		message:
+			"Hey! Did you check out that new café downtown? I heard they have the best lattes.",
+		isSelf: false,
+		timestamp: "11:00 AM",
+	},
+	{
+		id: "2",
+		message:
+			"Hey! Yeah, I actually went there yesterday. The lattes are amazing, and the ambiance is super cozy.",
+		isSelf: true,
+		timestamp: "11:02 AM",
+	},
+	{
+		id: "3",
+		message:
+			"Nice! I've been wanting to try their pastries too. Were they any good?",
+		isSelf: false,
+		timestamp: "11:05 AM",
+	},
+];
+
 const ChatActiveArea = ({
 	chatId,
 	onCloseChat,
@@ -71,51 +95,25 @@ const ChatActiveArea = ({
 			</div>
 
 			<div className='flex-1 overflow-y-auto p-4 space-y-1'>
-				<ChatBubble
-					message='Hey! Did you check out that new café downtown? I heard they have the best lattes.'
-					isSelf={false}
-					timestamp='11:00 AM'
-				/>
-				<ChatBubble
-					message='Hey! Yeah, I actually went there yesterday. The lattes are amazing, and the ambiance is super cozy.'
-					isSelf={true}
-					timestamp='11:02 AM'
-				/>
-				<ChatBubble
-					message="Nice! I've been wanting to try their pastries too. Were they any good?"
-					isSelf={false}
-					timestamp='11:05 AM'
-				/>
-				<ChatBubble
-					message='Hey! Did you check out that new café downtown? I heard they have the best lattes.'
-					isSelf={false}
-					timestamp='11:00 AM'
-				/>
-				<ChatBubble
-					message='Hey! Yeah, I actually went there yesterday. The lattes are amazing, and the ambiance is super cozy.'
-					isSelf={true}
-					timestamp='11:02 AM'
-				/>
-				<ChatBubble
-					message="Nice! I've been wanting to try their pastries too. Were they any good?"
-					isSelf={false}
-					timestamp='11:05 AM'
-				/>
-				<ChatBubble
-					message='Hey! Did you check out that new café downtown? I heard they have the best lattes.'
-					isSelf={false}
-					timestamp='11:00 AM'
-				/>
-				<ChatBubble
-					message='Hey! Yeah, I actually went there yesterday. The lattes are amazing, and the ambiance is super cozy.'
-					isSelf={true}
-					timestamp='11:02 AM'
-				/>
-				<ChatBubble
-					message="Nice! I've been wanting to try their pastries too. Were they any good?"
-					isSelf={false}
-					timestamp='11:05 AM'
-				/>
+				{mockMessages && mockMessages.length > 0 ? (
+					mockMessages.map((msg) => (
+						<ChatBubble
+							key={msg.id}
+							message={msg.message}
+							isSelf={msg.isSelf}
+							timestamp={msg.timestamp}
+						/>
+					))
+				) : (
+					<div className='h-full flex items-center justify-center'>
+						<EmptyState
+							icon={<FiMessageSquare className='text-5xl' />}
+							title='No messages yet'
+							description='Start a conversation by sending a message'
+							className='max-w-md'
+						/>
+					</div>
+				)}
 			</div>
 
 			<ChatInput
