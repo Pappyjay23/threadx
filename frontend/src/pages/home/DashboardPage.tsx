@@ -11,7 +11,6 @@ import ProfilePane from "./ProfilePane";
 const DashboardPage = () => {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("chats");
 	const [soundEnabled, setSoundEnabled] = useState(true);
-	const [showHeaderProfile, setShowHeaderProfile] = useState(false);
 	const tabChangedByNavRef = useRef(false);
 
 	const { activeChatId, setActiveChatId } = useChatStore();
@@ -37,7 +36,6 @@ const DashboardPage = () => {
 	const handleNavTabChange = (tab: ActiveTab) => {
 		tabChangedByNavRef.current = true;
 		setActiveTab(tab);
-		// setShowHeaderProfile(false);
 	};
 
 	return (
@@ -51,54 +49,60 @@ const DashboardPage = () => {
 			/>
 
 			<main className='flex-1 min-h-0 md:py-6 px-2 pb-2 flex relative'>
-				{!showHeaderProfile && (
-					<div className='flex gap-5 lg:gap-10 flex-1 min-h-0 w-full relative'>
-						{activeTab === "chats" && (
-							<div
-								className={`w-full md:w-auto min-h-0 border border-primary/10 rounded-[20px] overflow-hidden ${activeChatId ? "hidden md:block" : "block"}`}>
-								<ConversationList
-									onSelectChat={(id) => setActiveChatId(id)}
-									activeChatId={activeChatId}
-									setActiveTab={setActiveTab}
-								/>
-							</div>
-						)}
+				<div className='flex gap-5 lg:gap-10 flex-1 min-h-0 w-full relative'>
+					{/* ── Left column: lists / profile ── */}
 
-						{activeTab === "contacts" && (
-							<div
-								className={`w-full md:w-auto min-h-0 border border-primary/10 rounded-[20px] overflow-hidden ${activeChatId ? "hidden md:block" : "block"}`}>
-								<ContactList
-									onSelectChat={(id) => {
-										setActiveChatId(id);
-										setActiveTab("chats");
-									}}
-								/>
-							</div>
-						)}
-
+					{activeTab === "chats" && (
 						<div
-							className={`flex-1 min-h-0 w-full border border-primary/10 rounded-[20px] overflow-hidden ${!activeChatId ? "hidden md:flex" : "flex"}`}>
-							<ChatActiveArea
-								chatId={activeChatId}
-								onCloseChat={() => setActiveChatId(undefined)}
-								soundEnabled={soundEnabled}
-								onOpenHeaderProfile={() => setShowHeaderProfile(true)}
+							className={`w-full md:w-auto min-h-0 border border-primary/10 rounded-[20px] overflow-hidden ${
+								activeChatId ? "hidden md:block" : "block"
+							}`}>
+							<ConversationList
+								onSelectChat={(id) => setActiveChatId(id)}
+								activeChatId={activeChatId}
+								setActiveTab={setActiveTab}
 							/>
 						</div>
-					</div>
-				)}
+					)}
 
-				{(activeTab === "profile" || showHeaderProfile) && (
-					<ProfilePane
-						onBack={() => {
-							if (showHeaderProfile) {
-								setShowHeaderProfile(false);
-							} else {
-								setActiveTab("chats");
-							}
-						}}
-					/>
-				)}
+					{activeTab === "contacts" && (
+						<div
+							className={`w-full md:w-auto min-h-0 border border-primary/10 rounded-[20px] overflow-hidden ${
+								activeChatId ? "hidden md:block" : "block"
+							}`}>
+							<ContactList
+								onSelectChat={(id) => {
+									setActiveChatId(id);
+									setActiveTab("chats");
+								}}
+							/>
+						</div>
+					)}
+
+					{activeTab === "profile" && (
+						<div
+							className={`w-full md:w-auto min-h-0 overflow-hidden ${
+								activeChatId ? "hidden md:block" : "block"
+							}`}>
+							<ProfilePane
+								onBack={() => setActiveTab("chats")}
+							/>
+						</div>
+					)}
+
+					{/* ── Right column: chat area ── */}
+					<div
+						className={`flex-1 min-h-0 w-full border border-primary/10 rounded-[20px] overflow-hidden ${
+							!activeChatId ? "hidden md:flex" : "flex"
+						}`}>
+						<ChatActiveArea
+							chatId={activeChatId}
+							onCloseChat={() => setActiveChatId(undefined)}
+							soundEnabled={soundEnabled}
+							onOpenHeaderProfile={() => {}}
+						/>
+					</div>
+				</div>
 			</main>
 		</div>
 	);

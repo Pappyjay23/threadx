@@ -38,7 +38,7 @@ const ConversationList = ({
 	};
 
 	return (
-		<section className='w-full md:w-80 h-full bg-muted/50 flex flex-col'>
+		<section className='w-full md:w-80 h-full bg-muted/30 flex flex-col'>
 			<div className='p-4 flex items-center justify-between'>
 				<h1 className='text-xl font-bold tracking-tight text-white/90'>
 					Chats
