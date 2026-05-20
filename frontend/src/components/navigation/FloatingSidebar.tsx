@@ -99,7 +99,7 @@ const FloatingSidebar = ({
 
 					<button
 						onClick={onLogout}
-						className='relative group p-3 rounded-full text-white/40 hover:text-white/80 hover:bg-white/5 transition-all duration-300 ease-in-out cursor-pointer'>
+						className='relative group p-3 rounded-full text-red-400/70 group-hover:text-red-400/90 hover:bg-red-500/3 transition-all duration-300 ease-in-out cursor-pointer'>
 						<FiLogOut className='text-sm md:text-base lg:text-lg' />
 						<span className='pointer-events-none absolute left-full top-1/2 hidden -translate-y-1/2 ml-3 rounded-full bg-[#0c0926]/95 px-3 py-1 text-[10px] tracking-wide font-semibold text-white/90 shadow-2xl opacity-0 transition-all duration-300 group-hover:opacity-100 lg:inline-flex uppercase'>
 							Logout

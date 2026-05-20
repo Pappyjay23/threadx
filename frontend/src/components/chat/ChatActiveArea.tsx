@@ -1,8 +1,10 @@
 import useChatStore from "@/store/useChatStore";
+import { useEffect, useState } from "react";
 import { FiMessageSquare, FiSearch, FiX } from "react-icons/fi";
 import EmptyState from "../shared/EmptyState";
 import ChatBubble from "./ChatBubble";
 import ChatInput from "./ChatInput";
+import ChatProfilePanel from "./ChatProfilePanel";
 import PresenceAvatar from "./PresenceAvatar";
 import { toast } from "sonner";
 
@@ -41,10 +43,15 @@ const ChatActiveArea = ({
 	chatId,
 	onCloseChat,
 	soundEnabled,
-	// onOpenHeaderProfile,
 }: ChatActiveAreaProps) => {
 	const { chats } = useChatStore();
 	const chat = chats.find((c) => c.id === chatId);
+
+	const [showProfile, setShowProfile] = useState(false);
+
+	useEffect(() => {
+		setShowProfile(false);
+	}, [chatId]);
 
 	if (!chatId) {
 		return (
@@ -63,9 +70,8 @@ const ChatActiveArea = ({
 		<div className='flex-1 flex-col bg-workspace-noise h-full relative flex z-20'>
 			<div className='p-4 border-b border-primary/10 backdrop-blur-md flex items-center justify-between'>
 				<div
-					className='flex items-center gap-3 cursor-pointer'
-					// onClick={onOpenHeaderProfile}
-				>
+					className='flex items-center gap-3 cursor-pointer group'
+					onClick={() => setShowProfile(true)}>
 					<PresenceAvatar
 						isOnline={chat?.isOnline ?? false}
 						size='md'
@@ -73,11 +79,13 @@ const ChatActiveArea = ({
 						name={chat?.name}
 					/>
 					<div>
-						<p className='text-sm font-semibold text-white/90'>
+						<p className='text-sm font-semibold text-white/90 group-hover:text-primary/90 transition-colors duration-300'>
 							{chat?.name ?? "ThreadX User"}
 						</p>
 						<span
-							className={`text-[10px] ${chat?.isOnline ? "text-[#10b981]" : "text-white/40"} font-light tracking-wide`}>
+							className={`text-[10px] ${
+								chat?.isOnline ? "text-[#10b981]" : "text-white/40"
+							} font-light tracking-wide`}>
 							{chat?.isOnline ? "Online" : "Offline"}
 						</span>
 					</div>
@@ -123,6 +131,24 @@ const ChatActiveArea = ({
 					console.log(text);
 				}}
 				soundEnabled={soundEnabled}
+			/>
+
+			<ChatProfilePanel
+				isOpen={showProfile}
+				onClose={() => setShowProfile(false)}
+				chat={
+					chat
+						? {
+								id: chat.id,
+								name: chat.name,
+								image: chat.image,
+								isOnline: chat.isOnline,
+								email: chat.email,
+								username: chat.username,
+								// bio: chat.bio,
+							}
+						: undefined
+				}
 			/>
 		</div>
 	);
