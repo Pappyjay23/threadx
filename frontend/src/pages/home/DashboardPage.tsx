@@ -10,7 +10,6 @@ import ProfilePane from "./ProfilePane";
 
 const DashboardPage = () => {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("chats");
-	const [soundEnabled, setSoundEnabled] = useState(true);
 	const tabChangedByNavRef = useRef(false);
 
 	const { activeChatId, setActiveChatId } = useChatStore();
@@ -43,9 +42,6 @@ const DashboardPage = () => {
 			<FloatingSidebar
 				activeTab={activeTab}
 				setActiveTab={handleNavTabChange}
-				soundEnabled={soundEnabled}
-				setSoundEnabled={setSoundEnabled}
-				onLogout={() => {}}
 			/>
 
 			<main className='flex-1 min-h-0 md:py-6 px-2 pb-2 flex relative'>
@@ -98,7 +94,6 @@ const DashboardPage = () => {
 						<ChatActiveArea
 							chatId={activeChatId}
 							onCloseChat={() => setActiveChatId(undefined)}
-							soundEnabled={soundEnabled}
 							onOpenHeaderProfile={() => {}}
 						/>
 					</div>

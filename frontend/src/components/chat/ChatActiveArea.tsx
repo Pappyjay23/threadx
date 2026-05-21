@@ -11,7 +11,6 @@ import { toast } from "sonner";
 interface ChatActiveAreaProps {
 	chatId?: string;
 	onCloseChat: () => void;
-	soundEnabled: boolean;
 	onOpenHeaderProfile: () => void;
 }
 
@@ -42,7 +41,6 @@ const mockMessages = [
 const ChatActiveArea = ({
 	chatId,
 	onCloseChat,
-	soundEnabled,
 }: ChatActiveAreaProps) => {
 	const { chats } = useChatStore();
 	const chat = chats.find((c) => c.id === chatId);
@@ -130,7 +128,6 @@ const ChatActiveArea = ({
 					toast.info(text);
 					console.log(text);
 				}}
-				soundEnabled={soundEnabled}
 			/>
 
 			<ChatProfilePanel
