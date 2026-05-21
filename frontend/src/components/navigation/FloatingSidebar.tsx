@@ -1,3 +1,6 @@
+import useSound from "@/hooks/useSound";
+import { useAuthStore } from "@/store/useAuthStore";
+import useChatStore from "@/store/useChatStore";
 import type { ActiveTab } from "@/types";
 import { FiLogOut, FiVolume2, FiVolumeX } from "react-icons/fi";
 import { IoChatbubblesOutline } from "react-icons/io5";
@@ -6,18 +9,13 @@ import { RxPeople } from "react-icons/rx";
 interface FloatingSidebarProps {
 	activeTab: ActiveTab;
 	setActiveTab: (tab: ActiveTab) => void;
-	soundEnabled: boolean;
-	setSoundEnabled: (enabled: boolean) => void;
-	onLogout: () => void;
 }
 
-const FloatingSidebar = ({
-	activeTab,
-	setActiveTab,
-	soundEnabled,
-	setSoundEnabled,
-	onLogout,
-}: FloatingSidebarProps) => {
+const FloatingSidebar = ({ activeTab, setActiveTab }: FloatingSidebarProps) => {
+	const { setIsAuthenticated } = useAuthStore();
+	const { isSoundEnabled, toggleSound } = useChatStore();
+	const { playMouseClickSound } = useSound();
+
 	const navItems = [
 		{
 			key: "chats",
@@ -37,10 +35,13 @@ const FloatingSidebar = ({
 		},
 		{
 			key: "sound",
-			label: soundEnabled ? "Mute" : "Unmute",
-			onClick: () => setSoundEnabled(!soundEnabled),
+			label: isSoundEnabled ? "Mute" : "Unmute",
+			onClick: () => {
+				playMouseClickSound();
+				toggleSound();
+			},
 			active: false,
-			icon: soundEnabled ? (
+			icon: isSoundEnabled ? (
 				<FiVolume2 className='text-sm md:text-base lg:text-lg' />
 			) : (
 				<FiVolumeX className='text-sm md:text-base lg:text-lg' />
@@ -98,7 +99,7 @@ const FloatingSidebar = ({
 					</button>
 
 					<button
-						onClick={onLogout}
+						onClick={() => setIsAuthenticated(false)}
 						className='relative group p-3 rounded-full text-red-400/70 group-hover:text-red-400/90 hover:bg-red-500/3 transition-all duration-300 ease-in-out cursor-pointer'>
 						<FiLogOut className='text-sm md:text-base lg:text-lg' />
 						<span className='pointer-events-none absolute left-full top-1/2 hidden -translate-y-1/2 ml-3 rounded-full bg-[#0c0926]/95 px-3 py-1 text-[10px] tracking-wide font-semibold text-white/90 shadow-2xl opacity-0 transition-all duration-300 group-hover:opacity-100 lg:inline-flex uppercase'>

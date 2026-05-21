@@ -22,8 +22,10 @@ type ChatState = {
 	chats: Chat[];
 	contacts: Contact[];
 	activeChatId?: string;
+	isSoundEnabled: boolean;
 	setActiveChatId: (id?: string) => void;
 	getActiveChat: () => Chat | undefined;
+	toggleSound: () => void;
 };
 
 const mockContacts = [
@@ -100,6 +102,11 @@ const mockChats = [
 const useChatStore = create<ChatState>((set, get) => ({
 	chats: mockChats,
 	contacts: mockContacts,
+	isSoundEnabled: localStorage.getItem("isSoundEnabled") === "true",
+	toggleSound: () => {
+		localStorage.setItem("isSoundEnabled", String(!get().isSoundEnabled));
+		set((state) => ({ isSoundEnabled: !state.isSoundEnabled }));
+	},
 	activeChatId: undefined,
 	setActiveChatId: (id: string | undefined) => set({ activeChatId: id }),
 	getActiveChat: () => {

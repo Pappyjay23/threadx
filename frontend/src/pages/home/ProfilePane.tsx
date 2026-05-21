@@ -1,11 +1,12 @@
 import PresenceAvatar from "@/components/chat/PresenceAvatar";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useRef } from "react";
 import {
-  FiArrowLeft,
-  FiCamera,
-  FiChevronRight,
-  FiLogOut,
-  FiMail
+	FiArrowLeft,
+	FiCamera,
+	FiChevronRight,
+	FiLogOut,
+	FiMail,
 } from "react-icons/fi";
 import { LuUser } from "react-icons/lu";
 
@@ -23,6 +24,7 @@ const mockUser = {
 };
 
 const ProfilePane = ({ onBack }: ProfilePaneProps) => {
+	const { setIsAuthenticated } = useAuthStore();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +115,9 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 						Exit
 					</h4>
 					<div className='space-y-0.5'>
-						<button className='w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-500/5 transition-all duration-300 cursor-pointer group'>
+						<button
+							onClick={() => setIsAuthenticated(false)}
+							className='w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-500/5 transition-all duration-300 cursor-pointer group'>
 							<div className='p-2 rounded-full border border-red-500/20 bg-red-500/5 group-hover:border-red-500/40 group-hover:bg-red-500/10 transition-all duration-300'>
 								<FiLogOut className='h-3.5 w-3.5 text-red-400/60 group-hover:text-red-400/80' />
 							</div>

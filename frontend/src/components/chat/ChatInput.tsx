@@ -1,19 +1,20 @@
+import useSound from "@/hooks/useSound";
+import useChatStore from "@/store/useChatStore";
+import { isMobile } from "@/utils/helpers";
 import EmojiPicker, { Theme } from "emoji-picker-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BsEmojiSmileFill } from "react-icons/bs";
 import { FiImage } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
 import ChatTextArea from "./ChatTextArea";
-import useChatStore from "@/store/useChatStore";
-import { isMobile } from "@/utils/helpers";
 
 interface ChatInputProps {
 	onSendMessage: (text: string) => void;
-	soundEnabled: boolean;
 }
 
-const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
-	const { activeChatId } = useChatStore();
+const ChatInput = ({ onSendMessage }: ChatInputProps) => {
+	const { activeChatId, isSoundEnabled } = useChatStore();
+	const { playRandomKeyStrokeSound, playSendMessageSound } = useSound();
 
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -37,17 +38,11 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 		return () => document.removeEventListener("mousedown", handleOutsideClick);
 	}, [showPicker]);
 
-	const playKeySound = useCallback(() => {
-		if (!soundEnabled) return;
-		const audio = new Audio("/sounds/keypress.mp3");
-		audio.volume = 0.15;
-		audio.play().catch(() => {});
-	}, [soundEnabled]);
-
 	const sendMessage = () => {
 		if (!text.trim()) return;
 		onSendMessage(text);
 		setText("");
+		if (isSoundEnabled) playSendMessageSound();
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
@@ -73,7 +68,7 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 		if (!activeChatId) return;
 
 		requestAnimationFrame(() => {
-			if(isMobile()) return
+			if (isMobile()) return;
 			textareaRef.current?.focus();
 		});
 	}, [activeChatId]);
@@ -121,7 +116,7 @@ const ChatInput = ({ onSendMessage, soundEnabled }: ChatInputProps) => {
 						className='pr-4'
 						onChange={(e) => {
 							setText(e.target.value);
-							playKeySound();
+							if (isSoundEnabled) playRandomKeyStrokeSound();
 						}}
 						onKeyDown={handleKeyDown}
 					/>
