@@ -1,6 +1,6 @@
 import ContactList from "@/components/chat/ContactList";
 import useChatStore from "@/store/useChatStore";
-import type { ActiveTab } from "@/types";
+import type { ActiveTab } from "@/types/chat";
 import { isMobile } from "@/utils/helpers";
 import { useEffect, useRef, useState } from "react";
 import ChatActiveArea from "../../components/chat/ChatActiveArea";
@@ -80,9 +80,7 @@ const DashboardPage = () => {
 							className={`w-full md:w-auto min-h-0 overflow-hidden ${
 								activeChatId ? "hidden md:block" : "block"
 							}`}>
-							<ProfilePane
-								onBack={() => setActiveTab("chats")}
-							/>
+							<ProfilePane onBack={() => setActiveTab("chats")} />
 						</div>
 					)}
 

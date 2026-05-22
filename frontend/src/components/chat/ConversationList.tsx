@@ -4,7 +4,7 @@ import { FiPlus, FiSearch } from "react-icons/fi";
 import { IoSearchOutline, IoCloseOutline } from "react-icons/io5";
 import Input from "../ui/Input";
 import PresenceAvatar from "./PresenceAvatar";
-import type { ActiveTab } from "@/types";
+import type { ActiveTab } from "@/types/chat";
 import EmptyState from "../shared/EmptyState";
 import useChatStore from "@/store/useChatStore";
 
