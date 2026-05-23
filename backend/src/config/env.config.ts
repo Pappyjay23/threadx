@@ -21,4 +21,5 @@ export const ENV = {
 	ARCJET_ENV: process.env.ARCJET_ENV,
 	CLIENT_URL: process.env.CLIENT_URL,
 	SERVER_URL: process.env.SERVER_URL,
+	GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
 };

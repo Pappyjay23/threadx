@@ -8,3 +8,12 @@ export const getInitials = (name: string) => {
 };
 
 export const isMobile = () => typeof window !== "undefined" && window.matchMedia('(max-width: 767px)').matches;
+
+export const formatDate = (date: Date) => {
+	const options: Intl.DateTimeFormatOptions = {
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+	};
+	return new Intl.DateTimeFormat("en-US", options).format(date);
+};

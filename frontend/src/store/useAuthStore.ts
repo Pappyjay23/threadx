@@ -4,14 +4,9 @@ import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { authApi } from "@/api/auth";
 import { userApi } from "@/api/user";
-import type { AuthResponse } from "@/types/auth";
+import type { AuthResponse, ErrorResponse } from "@/types/auth";
 
-type User = {
-	_id: string;
-	firstName: string;
-	lastName: string;
-	email: string;
-};
+type User = AuthResponse["user"];
 
 type AuthStore = {
 	isAuthenticated: boolean;
@@ -28,6 +23,7 @@ type AuthStore = {
 		email: string,
 		password: string,
 	) => Promise<void>;
+	googleLogin: (credential: string) => Promise<void>;
 	logout: () => Promise<void>;
 };
 
@@ -86,7 +82,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 			toast.success("Login successful");
 		} catch (error: unknown) {
 			console.error("Error logging in:", error);
-			const message = error instanceof Error ? error.message : "Login failed";
+			const message = (error as ErrorResponse)?.message ?? "Login failed";
 			toast.error(message);
 			throw error;
 		}
@@ -102,9 +98,23 @@ export const useAuthStore = create<AuthStore>((set) => ({
 			});
 			Cookies.set("accessToken", response.accessToken);
 			set({ user: response.user, isAuthenticated: true });
-			toast.success("Signup successful");
+			toast.success("Account created successfully");
 		} catch (error: unknown) {
-			const message = error instanceof Error ? error.message : "Signup failed";
+			const message = (error as ErrorResponse)?.message ?? "Signup failed";
+			toast.error(message);
+			throw error;
+		}
+	},
+
+	googleLogin: async (accessToken) => {
+		try {
+			const response: AuthResponse = await authApi.googleLogin(accessToken);
+			Cookies.set("accessToken", response.accessToken);
+			set({ user: response.user, isAuthenticated: true });
+			toast.success("Login successful");
+		} catch (error: unknown) {
+			const message =
+				(error as ErrorResponse)?.message ?? "Google login failed";
 			toast.error(message);
 			throw error;
 		}

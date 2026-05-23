@@ -7,6 +7,7 @@ import express, {
 } from "express";
 import { originValidator } from "./middlewares/origin.middleware.js";
 import authRouter from "./routes/auth.routes.js";
+import userRouter from "./routes/user.routes.js";
 import { connectDB } from "./config/db.config.js";
 import { ENV } from "./config/env.config.js";
 
@@ -51,6 +52,7 @@ app.get("/health", (_, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 	if (err.message === "Not allowed by CORS") {

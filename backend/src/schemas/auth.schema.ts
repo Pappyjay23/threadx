@@ -19,3 +19,7 @@ export const signupSchema = z.object({
 	email: z.email("Invalid email address").toLowerCase().trim(),
 	password: z.string().min(6, "Password must be at least 6 characters"),
 });
+
+export const googleAuthSchema = z.object({
+	accessToken: z.string().min(1, "Google access token is required"),
+});
