@@ -1,4 +1,5 @@
-import type { Request, Response, NextFunction } from "express";
+import type { NextFunction, Request, Response } from "express";
+import { ENV } from "../config/env.config.js";
 import { sendErrorResponse } from "../utils/response.utils.js";
 
 export const originValidator = (allowedOrigins: string[]) => {
@@ -9,7 +10,7 @@ export const originValidator = (allowedOrigins: string[]) => {
 		}
 
 		// In development, sameSite: strict already blocks CSRF
-		if (process.env.NODE_ENV !== "production") {
+		if (ENV.NODE_ENV !== "production") {
 			return next();
 		}
 
