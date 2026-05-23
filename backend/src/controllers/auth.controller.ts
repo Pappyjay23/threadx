@@ -1,4 +1,4 @@
-import type { CookieOptions, Response } from "express";
+import type { CookieOptions, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import z from "zod";
 import { OAuth2Client } from "google-auth-library";
@@ -6,23 +6,33 @@ import { ENV } from "../config/env.config.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
 import RefreshToken from "../models/refreshToken.model.js";
 import User from "../models/user.model.js";
+import PasswordResetToken from "../models/passwordResetToken.model.js";
 import {
+	forgotPasswordSchema,
 	googleAuthSchema,
 	loginSchema,
+	resetPasswordSchema,
 	signupSchema,
 } from "../schemas/auth.schema.js";
 import {
+	getPasswordResetBaseUrl,
 	sendErrorResponse,
 	sendSuccessResponse,
 } from "../utils/response.utils.js";
 import {
 	generateAccessToken,
 	generateRefreshToken,
+	generatePasswordResetToken,
 	getRefreshTokenExpiry,
 	getRefreshTokenExpiryMs,
+	getPasswordResetTokenExpiry,
 	hashToken,
 } from "../utils/token.utils.js";
-import { sendWelcomeEmail } from "../utils/email.utils.js";
+import {
+	sendPasswordResetConfirmationEmail,
+	sendPasswordResetEmail,
+	sendWelcomeEmail,
+} from "../utils/email.utils.js";
 
 const googleClient = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
 
@@ -344,5 +354,102 @@ export const refresh = async (req: AuthRequest, res: Response) => {
 		}
 
 		sendErrorResponse(res, 500, "Error refreshing token");
+	}
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+	try {
+		const validatedData = forgotPasswordSchema.parse(req.body);
+		const { email, origin } = validatedData;
+
+		const user = await User.findOne({ email });
+		if (!user) {
+			return sendErrorResponse(res, 401, "User not found");
+		}
+
+		const resetToken = generatePasswordResetToken();
+		const tokenHash = hashToken(resetToken);
+		const expiresAt = getPasswordResetTokenExpiry();
+		const clientUrl = getPasswordResetBaseUrl(origin);
+		let createdTokenHash: string | null = null;
+
+		try {
+			await PasswordResetToken.deleteMany({ userId: user._id });
+			await PasswordResetToken.create({
+				userId: user._id,
+				tokenHash,
+				expiresAt,
+			});
+			createdTokenHash = tokenHash;
+
+			const resetLink = `${clientUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+			await sendPasswordResetEmail(user.email, user.firstName, resetLink);
+			sendSuccessResponse(res, 200, "Password reset email sent");
+		} catch (error) {
+			if (createdTokenHash) {
+				await PasswordResetToken.deleteOne({ tokenHash: createdTokenHash });
+			}
+			throw error;
+		}
+	} catch (error: any) {
+		if (error instanceof z.ZodError) {
+			const errors = error.issues.map((issue) => ({
+				message: issue.message,
+			}));
+			return sendErrorResponse(res, 400, "Validation failed", errors);
+		}
+
+		sendErrorResponse(
+			res,
+			500,
+			error.message || "Error processing password reset",
+		);
+	}
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+	try {
+		const validatedData = resetPasswordSchema.parse(req.body);
+		const { token, newPassword } = validatedData;
+
+		const passwordResetToken = await PasswordResetToken.findOne({
+			tokenHash: hashToken(token),
+		});
+
+		if (!passwordResetToken) {
+			return sendErrorResponse(res, 401, "Invalid or expired token");
+		}
+
+		if (passwordResetToken.expiresAt.getTime() <= Date.now()) {
+			await PasswordResetToken.deleteOne({ _id: passwordResetToken._id });
+			return sendErrorResponse(res, 401, "Invalid or expired token");
+		}
+
+		const user = await User.findById(passwordResetToken.userId);
+		if (!user) {
+			await PasswordResetToken.deleteOne({ _id: passwordResetToken._id });
+			return sendErrorResponse(res, 404, "User not found");
+		}
+
+		user.password = newPassword;
+		await user.save();
+		await PasswordResetToken.deleteOne({ _id: passwordResetToken._id });
+
+		try {
+			await sendPasswordResetConfirmationEmail(user.email, user.firstName);
+		} catch (error) {
+			console.error("Error sending password reset confirmation email:", error);
+		}
+
+		sendSuccessResponse(res, 200, "Password reset successful");
+	} catch (error: any) {
+		if (error instanceof z.ZodError) {
+			const errors = error.issues.map((issue) => ({
+				message: issue.message,
+			}));
+			return sendErrorResponse(res, 400, "Validation failed", errors);
+		}
+
+		sendErrorResponse(res, 500, error.message || "Error resetting password");
 	}
 };

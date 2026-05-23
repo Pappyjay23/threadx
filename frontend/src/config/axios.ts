@@ -52,7 +52,9 @@ axiosInstance.interceptors.response.use(
 		const isAuthRoute =
 			originalUrl === "/auth/login" ||
 			originalUrl === "/auth/signup" ||
-			originalUrl === "/auth/refresh";
+			originalUrl === "/auth/refresh" ||
+			originalUrl === "/auth/forgot-password" ||
+			originalUrl === "/auth/reset-password";
 
 		if (
 			error.response?.status === 401 &&

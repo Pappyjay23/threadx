@@ -9,21 +9,19 @@ export const hashToken = (token: string): string => {
 };
 
 export const generateAccessToken = (userId: string, email: string) => {
-	return jwt.sign(
-		{ id: userId, email },
-		ENV.JWT_ACCESS_SECRET as string,
-		{
-			expiresIn: (ENV.JWT_ACCESS_TOKEN_EXPIRES_IN ||
-				"15m") as StringValue,
-		},
-	);
+	return jwt.sign({ id: userId, email }, ENV.JWT_ACCESS_SECRET as string, {
+		expiresIn: (ENV.JWT_ACCESS_TOKEN_EXPIRES_IN || "15m") as StringValue,
+	});
 };
 
 export const generateRefreshToken = (userId: string) => {
 	return jwt.sign({ id: userId }, ENV.JWT_REFRESH_SECRET as string, {
-		expiresIn: (ENV.JWT_REFRESH_TOKEN_EXPIRES_IN ||
-			"7d") as StringValue,
+		expiresIn: (ENV.JWT_REFRESH_TOKEN_EXPIRES_IN || "7d") as StringValue,
 	});
+};
+
+export const generatePasswordResetToken = (): string => {
+	return crypto.randomBytes(32).toString("hex");
 };
 
 const parseExpiryMs = (expiresIn: string, fallbackMs: number): number => {
@@ -39,3 +37,9 @@ export const getRefreshTokenExpiryMs = () =>
 
 export const getRefreshTokenExpiry = () =>
 	new Date(Date.now() + getRefreshTokenExpiryMs());
+
+export const getPasswordResetTokenExpiryMs = () =>
+	parseExpiryMs("1h", 60 * 60 * 1000); // 1 hour
+
+export const getPasswordResetTokenExpiry = () =>
+	new Date(Date.now() + getPasswordResetTokenExpiryMs());

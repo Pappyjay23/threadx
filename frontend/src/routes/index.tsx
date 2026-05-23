@@ -1,5 +1,7 @@
 import LoginPage from "@/pages/auth/LoginPage";
 import SignupPage from "@/pages/auth/SignupPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 import ErrorPage from "@/pages/error/ErrorPage";
 import DashboardPage from "@/pages/home/DashboardPage";
 import LandingPage from "@/pages/landing/LandingPage";
@@ -30,6 +32,18 @@ export const routes: RouteConfig[] = [
 		element: <SignupPage />,
 		isPrivate: false,
 		label: "Sign Up",
+	},
+	{
+		path: "/forgot-password",
+		element: <ForgotPasswordPage />,
+		isPrivate: false,
+		label: "Forgot Password",
+	},
+	{
+		path: "/reset-password",
+		element: <ResetPasswordPage />,
+		isPrivate: false,
+		label: "Reset Password",
 	},
 
 	// Protected Routes
