@@ -27,4 +27,24 @@ export const authApi = {
 		const response = await axiosInstance.post("/auth/refresh", undefined);
 		return response.data.data as { accessToken: string };
 	},
+	forgotPassword: async (email: string) => {
+		const response = await axiosInstance.post("/auth/forgot-password", {
+			email,
+			origin:
+				typeof window !== "undefined" ? window.location.origin : undefined,
+		});
+		return response.data;
+	},
+	resetPassword: async (
+		token: string,
+		newPassword: string,
+		confirmPassword: string,
+	) => {
+		const response = await axiosInstance.post("/auth/reset-password", {
+			token,
+			newPassword,
+			confirmPassword,
+		});
+		return response.data;
+	},
 };
