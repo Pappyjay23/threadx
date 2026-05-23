@@ -2,10 +2,66 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { loginSchema, type LoginFormData } from "@/schemas/authSchema";
+import { LuLoader } from "react-icons/lu";
 
 const LoginPage = () => {
 	const navigate = useNavigate();
 	const { setIsAuthenticated } = useAuthStore();
+
+	const [formData, setFormData] = useState<LoginFormData>({
+		email: "",
+		password: "",
+	});
+	const [errors, setErrors] = useState<
+		Partial<Record<keyof LoginFormData, string>>
+	>({});
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	const validateField = (name: keyof LoginFormData, value: string) => {
+		const result = loginSchema.safeParse({ ...formData, [name]: value });
+
+		if (!result.success) {
+			const fieldError = result.error.issues.find(
+				(issue) => issue.path[0] === name,
+			);
+			setErrors((prev) => ({ ...prev, [name]: fieldError?.message || "" }));
+		} else {
+			setErrors((prev) => ({ ...prev, [name]: "" }));
+		}
+	};
+
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const { name, value } = e.target;
+		setFormData((prev) => ({ ...prev, [name]: value }));
+		validateField(name as keyof LoginFormData, value);
+	};
+
+	const onSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setIsSubmitting(true);
+
+		const result = loginSchema.safeParse(formData);
+
+		if (!result.success) {
+			const fieldErrors: Partial<Record<keyof LoginFormData, string>> = {};
+			result.error.issues.forEach((err) => {
+				const field = err.path[0] as keyof LoginFormData;
+				fieldErrors[field] = err.message;
+			});
+			setErrors(fieldErrors);
+			setIsSubmitting(false);
+			return;
+		}
+
+		setTimeout(() => {
+			console.log(result.data);
+			setIsAuthenticated(true);
+			navigate("/");
+			setIsSubmitting(false);
+		}, 1500);
+	};
 
 	return (
 		<div className='relative min-h-svh bg-[#060415] text-white flex items-center overflow-hidden selection:bg-[#7556d3]/30'>
@@ -46,7 +102,6 @@ const LoginPage = () => {
 
 					<div className='col-span-1 lg:col-span-7 flex justify-center lg:justify-end w-full'>
 						<div className='w-full max-w-115 rounded-3xl border border-white/5 bg-[#0e0b24]/30 p-8 md:p-10 backdrop-blur-xl shadow-2xl'>
-							{/* Mobile-Only Header Navigation */}
 							<div className='flex lg:hidden items-center justify-center mb-8'>
 								<Link
 									to='/landing'
@@ -103,13 +158,7 @@ const LoginPage = () => {
 								<div className='grow border-t border-white/5'></div>
 							</div>
 
-							<form
-								className='space-y-4'
-								onSubmit={(e) => {
-									e.preventDefault();
-									setIsAuthenticated(true);
-									navigate("/");
-								}}>
+							<form className='space-y-4' onSubmit={onSubmit}>
 								<div className='space-y-1.5'>
 									<label
 										htmlFor='email'
@@ -121,7 +170,14 @@ const LoginPage = () => {
 										placeholder='name@domain.com'
 										id='email'
 										name='email'
+										value={formData.email}
+										onChange={handleInputChange}
 									/>
+									{errors.email && (
+										<p className='text-[10px] text-red-400 px-1'>
+											{errors.email}
+										</p>
+									)}
 								</div>
 
 								<div className='space-y-1.5'>
@@ -142,13 +198,28 @@ const LoginPage = () => {
 										placeholder='••••••••••••'
 										id='password'
 										name='password'
+										value={formData.password}
+										onChange={handleInputChange}
 									/>
+									{errors.password && (
+										<p className='text-[10px] text-red-400 px-1'>
+											{errors.password}
+										</p>
+									)}
 								</div>
 
 								<Button
 									type='submit'
-									className='w-full mt-10! md:mt-6 py-3 shadow-lg shadow-[#7556d3]/10 text-xs'>
-									Sign In
+									disabled={isSubmitting}
+									className='w-full mt-10! md:mt-6 py-3 shadow-lg shadow-[#7556d3]/10 text-xs flex items-center justify-center'>
+									{isSubmitting ? (
+										<>
+											<LuLoader className='animate-spin text-sm mr-2' />
+											Signing in...
+										</>
+									) : (
+										"Sign In"
+									)}
 								</Button>
 							</form>
 

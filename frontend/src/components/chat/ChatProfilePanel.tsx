@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { FiMail, FiX } from "react-icons/fi";
 import { LuUser } from "react-icons/lu";
 import PresenceAvatar from "./PresenceAvatar";
+import { MdCardMembership } from "react-icons/md";
 
 interface ChatProfilePanelProps {
 	isOpen: boolean;
@@ -123,6 +124,15 @@ const ChatProfilePanel = ({ isOpen, onClose, chat }: ChatProfilePanelProps) => {
 								</div>
 							</div>
 						)}
+						<div className='flex items-center gap-3'>
+							<div className='p-2 rounded-full border border-primary/20 bg-primary/5'>
+								<MdCardMembership className='h-3.5 w-3.5 text-primary/60' />
+							</div>
+							<div>
+								<p className='text-[10px] text-foreground/40'>Joined</p>
+								<p className='text-xs text-white/70'>April 1, 2023</p>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

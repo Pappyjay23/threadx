@@ -1,7 +1,7 @@
 import useSound from "@/hooks/useSound";
 import { useAuthStore } from "@/store/useAuthStore";
 import useChatStore from "@/store/useChatStore";
-import type { ActiveTab } from "@/types";
+import type { ActiveTab } from "@/types/chat";
 import { FiLogOut, FiVolume2, FiVolumeX } from "react-icons/fi";
 import { IoChatbubblesOutline } from "react-icons/io5";
 import { RxPeople } from "react-icons/rx";
