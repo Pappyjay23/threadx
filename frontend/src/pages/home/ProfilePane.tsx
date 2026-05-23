@@ -1,5 +1,6 @@
 import PresenceAvatar from "@/components/chat/PresenceAvatar";
 import { useAuthStore } from "@/store/useAuthStore";
+import { formatDate } from "@/utils/helpers";
 import { useRef } from "react";
 import {
 	FiArrowLeft,
@@ -10,24 +11,23 @@ import {
 } from "react-icons/fi";
 import { LuUser } from "react-icons/lu";
 import { MdCardMembership } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
 
 interface ProfilePaneProps {
 	onBack?: () => void;
 }
 
-// TODO: replace with real user data from your auth store
-const mockUser = {
-	name: "Peace Jinadu-Paul",
-	username: "peacejp",
-	email: "peace@piseye.studio",
-	image: undefined as string | undefined,
-	bio: "Hey there! I'm using ThreadX.",
-	createdAt: "April 1, 2023",
-};
-
 const ProfilePane = ({ onBack }: ProfilePaneProps) => {
-	const { setIsAuthenticated } = useAuthStore();
+	const navigate = useNavigate();
+	const { logout, user } = useAuthStore();
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const fullName = user
+		? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
+		: "Guest";
+	const email = user?.email ?? "Unavailable";
+	const username = user ? `@${user.email.split("@")[0]}` : "@guest";
+	const dateJoined = formatDate(new Date(user?.createdAt ?? ""));
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -43,17 +43,17 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 		{
 			icon: <FiMail className='h-3.5 w-3.5 text-primary/60' />,
 			label: "Email",
-			value: mockUser.email,
+			value: email,
 		},
 		{
 			icon: <LuUser className='h-3.5 w-3.5 text-primary/60' />,
 			label: "Username",
-			value: `@${mockUser.username}`,
+			value: username,
 		},
 		{
 			icon: <MdCardMembership className='h-3.5 w-3.5 text-primary/60' />,
 			label: "Joined",
-			value: mockUser.createdAt,
+			value: dateJoined,
 		},
 	];
 
@@ -80,8 +80,8 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 						<PresenceAvatar
 							isOnline={true}
 							size='lg'
-							src={mockUser.image}
-							name={mockUser.name}
+							src={user?.picture}
+							name={fullName}
 						/>
 
 						<input
@@ -103,7 +103,7 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 					</div>
 
 					<h2 className='mt-4 text-lg font-semibold text-white/90'>
-						{mockUser.name}
+						{fullName}
 					</h2>
 				</div>
 
@@ -128,7 +128,10 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 					</h4>
 					<div className='space-y-0.5'>
 						<button
-							onClick={() => setIsAuthenticated(false)}
+							onClick={async () => {
+								await logout();
+								navigate("/login");
+							}}
 							className='w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-500/5 transition-all duration-300 cursor-pointer group'>
 							<div className='p-2 rounded-full border border-red-500/20 bg-red-500/5 group-hover:border-red-500/40 group-hover:bg-red-500/10 transition-all duration-300'>
 								<FiLogOut className='h-3.5 w-3.5 text-red-400/60 group-hover:text-red-400/80' />

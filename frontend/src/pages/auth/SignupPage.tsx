@@ -5,10 +5,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { signupSchema, type SignupFormData } from "@/schemas/authSchema";
 import { LuLoader } from "react-icons/lu";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const SignupPage = () => {
 	const navigate = useNavigate();
-	const { setIsAuthenticated } = useAuthStore();
+	const { signup, googleLogin } = useAuthStore();
 
 	const [formData, setFormData] = useState<SignupFormData>({
 		firstName: "",
@@ -20,6 +21,7 @@ const SignupPage = () => {
 		Partial<Record<keyof SignupFormData, string>>
 	>({});
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
 	const validateField = (name: keyof SignupFormData, value: string) => {
 		const result = signupSchema.safeParse({ ...formData, [name]: value });
@@ -57,13 +59,37 @@ const SignupPage = () => {
 			return;
 		}
 
-		setTimeout(() => {
-			console.log(result.data);
-			setIsAuthenticated(true);
+		try {
+			await signup(
+				result.data.firstName,
+				result.data.lastName,
+				result.data.email,
+				result.data.password,
+			);
 			navigate("/");
+		} finally {
 			setIsSubmitting(false);
-		}, 1500);
+		}
 	};
+
+	const googleResponse = useGoogleLogin({
+		onSuccess: async (tokenResponse) => {
+			setIsGoogleSubmitting(true);
+			try {
+				await googleLogin(tokenResponse.access_token);
+				navigate("/");
+			} catch (error) {
+				console.error("Google signup error:", error);
+			} finally {
+				setIsGoogleSubmitting(false);
+			}
+		},
+		onError: () => {
+			console.error("Google OAuth error");
+			setIsGoogleSubmitting(false);
+		},
+		flow: "implicit",
+	});
 
 	return (
 		<div className='relative min-h-svh bg-[#060415] text-white flex items-center overflow-hidden selection:bg-[#7556d3]/30'>
@@ -130,7 +156,11 @@ const SignupPage = () => {
 								</p>
 							</div>
 
-							<button className='w-full flex items-center justify-center gap-3 bg-transparent border border-primary text-zinc-200 text-xs md:text-sm font-medium py-3 px-4 rounded-full transition-all duration-300 cursor-pointer active:scale-[0.99]'>
+							<button
+								type='button'
+								onClick={() => googleResponse()}
+								disabled={isGoogleSubmitting}
+								className='w-full flex items-center justify-center gap-3 bg-transparent border border-primary/50 hover:border-[#7556d3]/50 text-zinc-200 hover:text-white text-xs md:text-sm font-medium py-3 px-4 rounded-full transition-all duration-300 cursor-pointer active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed'>
 								<svg className='h-4 w-4' viewBox='0 0 24 24'>
 									<path
 										fill='#EA4335'
@@ -149,7 +179,7 @@ const SignupPage = () => {
 										d='M12 23c3.24 0 5.97-1.08 7.96-2.92l-3.71-2.87a7.03 7.03 0 0 1-10.45-3.71l-3.87 3A11.97 11.97 0 0 0 12 23z'
 									/>
 								</svg>
-								Continue with Google
+								{isGoogleSubmitting ? "Signing in..." : "Continue with Google"}
 							</button>
 
 							<div className='relative flex items-center my-6'>
