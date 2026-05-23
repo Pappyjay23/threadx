@@ -22,6 +22,7 @@ import {
 	getRefreshTokenExpiryMs,
 	hashToken,
 } from "../utils/token.utils.js";
+import { sendWelcomeEmail } from "../utils/email.utils.js";
 
 const googleClient = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
 
@@ -92,6 +93,12 @@ export const signup = async (req: AuthRequest, res: Response) => {
 			user: user.toJSON(),
 			accessToken,
 		});
+
+		try {
+			await sendWelcomeEmail(user.email, user.firstName, ENV.CLIENT_URL || "");
+		} catch (error) {
+			console.error("Error sending welcome email:", error);
+		}
 	} catch (error: any) {
 		if (error instanceof z.ZodError) {
 			const errors = error.issues.map((issue) => ({
@@ -187,6 +194,16 @@ export const googleAuth = async (req: AuthRequest, res: Response) => {
 			}
 
 			user = await User.create(newUserData);
+
+			try {
+				await sendWelcomeEmail(
+					user.email,
+					user.firstName,
+					ENV.CLIENT_URL || "",
+				);
+			} catch (error) {
+				console.error("Error sending welcome email:", error);
+			}
 		} else {
 			console.log("Updating existing user:", profile.email); // Debug log
 			await User.updateOne(
