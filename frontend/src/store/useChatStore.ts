@@ -10,9 +10,14 @@ type ChatState = {
 	chats: Chat[];
 	setChats: (chats: Chat[]) => void;
 	contacts: Contact[];
+	contactsPage: number;
+	contactsHasMore: boolean;
+	isLoadingMoreContacts: boolean;
 	activeChatId?: string;
 	setActiveChatId: (id?: string) => void;
 	messages: Message[];
+	messagesHasMore: boolean;
+	isLoadingMoreMessages: boolean;
 	isContactsLoading: boolean;
 	isChatsLoading: boolean;
 	isMessagesLoading: boolean;
@@ -20,14 +25,13 @@ type ChatState = {
 	toggleSound: () => void;
 	selectedUser: Contact | null;
 	setSelectedUser: (selectedUser: Contact | null) => void;
-	getContacts: () => Promise<void>;
-	getChatPartners: () => Promise<void>;
+	getContacts: (page?: number, search?: string) => Promise<void>;
+	loadMoreContacts: (search?: string) => Promise<void>;
+	getChatPartners: (search?: string) => Promise<void>;
 	getMessagesByUserId: (id: string) => Promise<void>;
+	loadMoreMessages: (id: string) => Promise<void>;
 	sendMessage: (
-		messageData: {
-			text?: string;
-			image?: string;
-		},
+		messageData: { text?: string; image?: string },
 		imageFile?: File | null,
 		imagePreview?: string | null,
 	) => Promise<void>;
@@ -35,74 +39,131 @@ type ChatState = {
 
 const useChatStore = create<ChatState>((set, get) => ({
 	chats: [],
-	setChats: (chats: Chat[]) => set({ chats }),
+	setChats: (chats) => set({ chats }),
 	contacts: [],
+	contactsPage: 1,
+	contactsHasMore: false,
+	isLoadingMoreContacts: false,
 	messages: [],
+	messagesHasMore: false,
+	isLoadingMoreMessages: false,
 	selectedUser: null,
 	isContactsLoading: false,
 	isChatsLoading: false,
 	isMessagesLoading: false,
 	isSoundEnabled: localStorage.getItem("isSoundEnabled") === "true",
 	toggleSound: () => {
-		localStorage.setItem("isSoundEnabled", String(!get().isSoundEnabled));
-		set((state) => ({ isSoundEnabled: !state.isSoundEnabled }));
+		const next = !get().isSoundEnabled;
+		localStorage.setItem("isSoundEnabled", String(next));
+		set({ isSoundEnabled: next });
 	},
 	activeChatId: undefined,
-	setActiveChatId: (id: string | undefined) => set({ activeChatId: id }),
-	setSelectedUser: (selectedUser) => {
-		set({ selectedUser });
-	},
-	getContacts: async () => {
+	setActiveChatId: (id) => set({ activeChatId: id }),
+	setSelectedUser: (selectedUser) => set({ selectedUser }),
+
+	// Fresh fetch — page 1, replaces contacts
+	getContacts: async (page = 1, search = "") => {
 		set({ isContactsLoading: true });
 		try {
-			const contacts = await messageApi.getContacts();
-			set({ contacts });
-		} catch (error: unknown) {
-			console.error("Error fetching contacts:", error);
-			const message =
-				(error as ErrorResponse)?.message ?? "Failed to fetch contacts";
-			toast.error(message);
+			const { contacts, pagination } = await messageApi.getContacts(
+				page,
+				search,
+			);
+			set({
+				contacts,
+				contactsPage: page,
+				contactsHasMore: pagination.hasMore,
+			});
+		} catch (error) {
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to fetch contacts",
+			);
 		} finally {
 			set({ isContactsLoading: false });
 		}
 	},
-	getChatPartners: async () => {
+
+	// Append next page
+	loadMoreContacts: async (search = "") => {
+		const { contactsPage, contactsHasMore, isLoadingMoreContacts } = get();
+		if (!contactsHasMore || isLoadingMoreContacts) return;
+
+		set({ isLoadingMoreContacts: true });
+		try {
+			const nextPage = contactsPage + 1;
+			const { contacts, pagination } = await messageApi.getContacts(
+				nextPage,
+				search,
+			);
+			set((state) => ({
+				contacts: [...state.contacts, ...contacts],
+				contactsPage: nextPage,
+				contactsHasMore: pagination.hasMore,
+			}));
+		} catch (error) {
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to load more contacts",
+			);
+		} finally {
+			set({ isLoadingMoreContacts: false });
+		}
+	},
+
+	getChatPartners: async (search = "") => {
 		set({ isChatsLoading: true });
 		try {
-			const chats = await messageApi.getChatPartners();
+			const chats = await messageApi.getChatPartners(search);
 			set({ chats });
 		} catch (error) {
-			console.error("Error fetching chat partners:", error);
-			const message =
-				(error as ErrorResponse)?.message ?? "Failed to fetch chat partners";
-			toast.error(message);
+			toast.error((error as ErrorResponse)?.message ?? "Failed to fetch chats");
 		} finally {
 			set({ isChatsLoading: false });
 		}
 	},
-	getMessagesByUserId: async (id: string) => {
+
+	// Initial load — newest MESSAGES_PAGE_LIMIT messages
+	getMessagesByUserId: async (id) => {
 		set({ isMessagesLoading: true });
 		try {
-			const messages = await messageApi.getMessagesByUserId(id);
-			set({ messages });
+			const { messages, hasMore } = await messageApi.getMessagesByUserId(id);
+			set({ messages, messagesHasMore: hasMore });
 		} catch (error) {
-			console.error("Error fetching messages:", error);
-			const message =
-				(error as ErrorResponse)?.message ?? "Failed to fetch messages";
-			toast.error(message);
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to fetch messages",
+			);
 		} finally {
 			set({ isMessagesLoading: false });
 		}
 	},
 
-	sendMessage: async (
-		messageData: { text?: string },
-		imageFile?: File | null,
-		imagePreview?: string | null,
-	) => {
+	// Load older messages — prepend to existing
+	loadMoreMessages: async (id) => {
+		const { messages, messagesHasMore, isLoadingMoreMessages } = get();
+		if (!messagesHasMore || isLoadingMoreMessages) return;
+
+		set({ isLoadingMoreMessages: true });
+		try {
+			const oldestId = messages[0]?._id;
+			const { messages: older, hasMore } = await messageApi.getMessagesByUserId(
+				id,
+				oldestId,
+			);
+			set((state) => ({
+				messages: [...older, ...state.messages],
+				messagesHasMore: hasMore,
+			}));
+		} catch (error) {
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to load more messages",
+			);
+		} finally {
+			set({ isLoadingMoreMessages: false });
+		}
+	},
+
+	sendMessage: async (messageData, imageFile, imagePreview) => {
 		const { selectedUser, messages } = get();
 		const { user } = useAuthStore.getState();
-
 		if (!selectedUser || !user) return;
 
 		const tempId = `temp-${Date.now()}`;
@@ -118,7 +179,6 @@ const useChatStore = create<ChatState>((set, get) => ({
 			updatedAt: now,
 		};
 
-		// Optimistically add message immediately
 		set({ messages: [...messages, optimisticMessage] });
 
 		try {
@@ -132,7 +192,7 @@ const useChatStore = create<ChatState>((set, get) => ({
 
 				const formData = new FormData();
 				formData.append("file", imageFile);
-				formData.append("timestamp", timestamp);
+				formData.append("timestamp", String(timestamp));
 				formData.append("signature", signature);
 				formData.append("api_key", apiKey);
 				formData.append("folder", folder);
@@ -147,7 +207,6 @@ const useChatStore = create<ChatState>((set, get) => ({
 				const cloudinaryData = await cloudinaryRes.json();
 				imageUrl = cloudinaryData.secure_url;
 
-				// Preload before swapping so there's no flicker
 				await new Promise((resolve) => {
 					const img = new Image();
 					img.onload = resolve;
@@ -161,19 +220,20 @@ const useChatStore = create<ChatState>((set, get) => ({
 				image: imageUrl ?? undefined,
 			});
 
+			if (imagePreview) URL.revokeObjectURL(imagePreview);
+
 			set((state) => ({
 				messages: state.messages.map((m) =>
 					m._id === tempId ? sentMessage : m,
 				),
 			}));
 		} catch (error) {
-			// Roll back the optimistic message on failure
 			set((state) => ({
 				messages: state.messages.filter((m) => m._id !== tempId),
 			}));
-			const message =
-				(error as ErrorResponse)?.message ?? "Failed to send message";
-			toast.error(message);
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to send message",
+			);
 		}
 	},
 }));

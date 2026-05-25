@@ -1,9 +1,13 @@
 import useChatStore from "@/store/useChatStore";
 import type { ActiveTab } from "@/types/chat";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BsPin } from "react-icons/bs";
 import { FiPlus, FiSearch } from "react-icons/fi";
-import { IoChatbubblesOutline, IoCloseOutline, IoSearchOutline } from "react-icons/io5";
+import {
+	IoChatbubblesOutline,
+	IoCloseOutline,
+	IoSearchOutline,
+} from "react-icons/io5";
 import EmptyState from "../shared/EmptyState";
 import Input from "../ui/Input";
 import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
@@ -15,6 +19,8 @@ interface ConversationListProps {
 	setActiveTab: React.Dispatch<React.SetStateAction<ActiveTab>>;
 }
 
+const DEBOUNCE_MS = 350;
+
 const ConversationList = ({
 	onSelectChat,
 	activeChatId,
@@ -23,24 +29,26 @@ const ConversationList = ({
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const searchRef = useRef<HTMLInputElement | null>(null);
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const { chats, setSelectedUser, getChatPartners, isChatsLoading } =
 		useChatStore();
 
 	useEffect(() => {
-		getChatPartners();
-	}, [getChatPartners]);
+		getChatPartners("");
+	}, []);
 
-	const filteredChats = useMemo(() => {
-		return chats.filter(
-			(chat) =>
-				chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				chat.message.toLowerCase().includes(searchQuery.toLowerCase()),
-		);
-	}, [searchQuery, chats]);
+	const handleSearch = useCallback((value: string) => {
+		setSearchQuery(value);
+		if (debounceRef.current) clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => {
+			getChatPartners(value);
+		}, DEBOUNCE_MS);
+	}, []);
 
 	const handleCloseSearch = () => {
 		setSearchQuery("");
+		getChatPartners("");
 	};
 
 	return (
@@ -58,7 +66,7 @@ const ConversationList = ({
 					<button
 						onClick={() => {
 							setIsSearchOpen(!isSearchOpen);
-							searchRef.current?.focus();
+							setTimeout(() => searchRef.current?.focus(), 50);
 						}}
 						className={`p-2 border rounded-full transition-all duration-500 ease-in-out cursor-pointer ${
 							isSearchOpen
@@ -80,7 +88,7 @@ const ConversationList = ({
 					<Input
 						ref={searchRef}
 						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
+						onChange={(e) => handleSearch(e.target.value)}
 						placeholder='Search chats...'
 						type='search'
 						className='rounded-full! border-primary/30! border w-full pr-10 text-xs!'
@@ -98,8 +106,8 @@ const ConversationList = ({
 			<div className='flex-1 overflow-y-auto space-y-2 px-2 pb-20 md:pb-4'>
 				{isChatsLoading ? (
 					<ChatSkeletonLoader count={6} />
-				) : filteredChats.length > 0 ? (
-					filteredChats.map((chat) => {
+				) : chats.length > 0 ? (
+					chats.map((chat) => {
 						const isActive = chat.id === activeChatId;
 						return (
 							<div
@@ -120,17 +128,14 @@ const ConversationList = ({
 									size='md'
 								/>
 								<div className='flex-1 min-w-0'>
-									<div className='flex items-center justify-between mb-0.5'>
-										<h3 className='text-sm font-medium text-white/90 truncate tracking-tight'>
-											{chat.name}
-										</h3>
-									</div>
+									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight'>
+										{chat.name}
+									</h3>
 									<p
 										className={`text-xs truncate font-light ${chat.typing ? "text-[#a286f7] font-normal" : "text-foreground/50"}`}>
 										{chat.message}
 									</p>
-									<p
-										className={`text-[10px] truncate font-light text-foreground/70 mt-1`}>
+									<p className='text-[10px] truncate font-light text-foreground/70 mt-1'>
 										{chat.lastUpdated}
 									</p>
 								</div>
