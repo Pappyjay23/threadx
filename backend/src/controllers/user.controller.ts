@@ -11,7 +11,7 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
 		const user = await User.findById(req.user?.id);
 
 		if (!user) {
-			return sendErrorResponse(res, 404, "User not found");
+			return sendErrorResponse(res, 404, "Unauthorized: User not found");
 		}
 
 		const userWithoutPassword = user.toJSON();

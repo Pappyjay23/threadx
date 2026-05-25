@@ -1,10 +1,12 @@
-import { useState, useMemo } from "react";
+import useChatStore from "@/store/useChatStore";
+import { useEffect, useMemo, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { IoCloseOutline } from "react-icons/io5";
-import Input from "../ui/Input";
-import PresenceAvatar from "./PresenceAvatar";
 import EmptyState from "../shared/EmptyState";
-import useChatStore from "@/store/useChatStore";
+import Input from "../ui/Input";
+import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
+import PresenceAvatar from "./PresenceAvatar";
+import { RxPeople } from "react-icons/rx";
 
 interface ContactListProps {
 	onSelectChat: (id: string) => void;
@@ -13,7 +15,12 @@ interface ContactListProps {
 const ContactList = ({ onSelectChat }: ContactListProps) => {
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const { contacts, setActiveChatId } = useChatStore();
+	const { contacts, getContacts, isContactsLoading, setSelectedUser } =
+		useChatStore();
+
+	useEffect(() => {
+		getContacts();
+	}, [getContacts]);
 
 	const filteredContacts = useMemo(() => {
 		return contacts.filter(
@@ -51,41 +58,51 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 			</div>
 
 			<div className='flex-1 overflow-y-auto space-y-2 px-2 pb-20 md:pb-4'>
-				{filteredContacts.length > 0 ? (
-					filteredContacts.map((contact) => {
-						return (
-							<div
-								key={contact.id}
-								onClick={() => {
-									setActiveChatId(contact.id);
-									onSelectChat(contact.id);
-								}}
-								className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all duration-300 ease-in-out border border-transparent hover:bg-white/5`}>
-								<PresenceAvatar
-									src={contact.image}
-									name={contact.name}
-									isOnline={contact.isOnline}
-									size='md'
-								/>
-								<div className='flex-1 min-w-0'>
-									<div className='flex items-center justify-between mb-0.5'>
-										<h3 className='text-sm font-medium text-white/90 truncate tracking-tight'>
-											{contact.name}
-										</h3>
-									</div>
-									<p className='text-xs truncate font-light text-foreground/60'>
-										@{contact.username}
-									</p>
+				{isContactsLoading ? (
+					<ChatSkeletonLoader count={6} />
+				) : filteredContacts.length > 0 ? (
+					filteredContacts.map((contact) => (
+						<div
+							key={contact.id}
+							onClick={() => {
+								onSelectChat(contact.id);
+								setSelectedUser(contact);
+							}}
+							className='flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all duration-300 ease-in-out border border-transparent hover:bg-white/5'>
+							<PresenceAvatar
+								src={contact.image}
+								name={contact.name}
+								isOnline={contact.isOnline}
+								size='md'
+							/>
+							<div className='flex-1 min-w-0'>
+								<div className='flex items-center justify-between mb-0.5'>
+									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight'>
+										{contact.name}
+									</h3>
 								</div>
+								<p className='text-xs truncate font-light text-foreground/60'>
+									@{contact.username}
+								</p>
 							</div>
-						);
-					})
+						</div>
+					))
 				) : (
 					<div className='flex flex-col h-full items-center justify-center text-center px-4 animate-fade-in'>
 						<EmptyState
-							icon={<FiSearch className='text-4xl' />}
-							title='No contacts match your search.'
-							description='Try checking the spelling or querying another contact.'
+							icon={
+								searchQuery ? (
+									<FiSearch className='text-4xl' />
+								) : (
+									<RxPeople className='text-5xl' />
+								)
+							}
+							title='No contacts found.'
+							description={
+								searchQuery
+									? "Try checking the spelling or querying another contact."
+									: "No contacts yet."
+							}
 						/>
 					</div>
 				)}

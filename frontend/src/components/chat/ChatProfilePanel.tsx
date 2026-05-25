@@ -14,7 +14,7 @@ interface ChatProfilePanelProps {
 		isOnline: boolean;
 		email?: string;
 		username?: string;
-		bio?: string;
+		dateJoined?: string;
 	};
 }
 
@@ -130,7 +130,7 @@ const ChatProfilePanel = ({ isOpen, onClose, chat }: ChatProfilePanelProps) => {
 							</div>
 							<div>
 								<p className='text-[10px] text-foreground/40'>Joined</p>
-								<p className='text-xs text-white/70'>April 1, 2023</p>
+								<p className='text-xs text-white/70'>{chat?.dateJoined}</p>
 							</div>
 						</div>
 					</div>

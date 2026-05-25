@@ -1,12 +1,13 @@
-import { useState, useMemo, useRef } from "react";
+import useChatStore from "@/store/useChatStore";
+import type { ActiveTab } from "@/types/chat";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BsPin } from "react-icons/bs";
 import { FiPlus, FiSearch } from "react-icons/fi";
-import { IoSearchOutline, IoCloseOutline } from "react-icons/io5";
-import Input from "../ui/Input";
-import PresenceAvatar from "./PresenceAvatar";
-import type { ActiveTab } from "@/types/chat";
+import { IoChatbubblesOutline, IoCloseOutline, IoSearchOutline } from "react-icons/io5";
 import EmptyState from "../shared/EmptyState";
-import useChatStore from "@/store/useChatStore";
+import Input from "../ui/Input";
+import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
+import PresenceAvatar from "./PresenceAvatar";
 
 interface ConversationListProps {
 	onSelectChat: (id: string) => void;
@@ -23,7 +24,12 @@ const ConversationList = ({
 	const [searchQuery, setSearchQuery] = useState("");
 	const searchRef = useRef<HTMLInputElement | null>(null);
 
-	const { chats } = useChatStore();
+	const { chats, setSelectedUser, getChatPartners, isChatsLoading } =
+		useChatStore();
+
+	useEffect(() => {
+		getChatPartners();
+	}, [getChatPartners]);
 
 	const filteredChats = useMemo(() => {
 		return chats.filter(
@@ -90,7 +96,9 @@ const ConversationList = ({
 			</div>
 
 			<div className='flex-1 overflow-y-auto space-y-2 px-2 pb-20 md:pb-4'>
-				{filteredChats.length > 0 ? (
+				{isChatsLoading ? (
+					<ChatSkeletonLoader count={6} />
+				) : filteredChats.length > 0 ? (
 					filteredChats.map((chat) => {
 						const isActive = chat.id === activeChatId;
 						return (
@@ -98,6 +106,7 @@ const ConversationList = ({
 								key={chat.id}
 								onClick={() => {
 									onSelectChat(chat.id);
+									setSelectedUser(chat);
 								}}
 								className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all duration-150 ${
 									isActive
@@ -139,9 +148,19 @@ const ConversationList = ({
 				) : (
 					<div className='flex flex-col h-full items-center justify-center text-center px-4 animate-fade-in'>
 						<EmptyState
-							icon={<FiSearch className='text-4xl' />}
-							title='No chats match your search.'
-							description='Try searching for something else.'
+							icon={
+								searchQuery ? (
+									<FiSearch className='text-4xl' />
+								) : (
+									<IoChatbubblesOutline className='text-5xl' />
+								)
+							}
+							title='No chats found.'
+							description={
+								searchQuery
+									? "Try searching for something else."
+									: "No chats yet."
+							}
 						/>
 					</div>
 				)}
