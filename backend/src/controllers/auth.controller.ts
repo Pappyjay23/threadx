@@ -215,21 +215,10 @@ export const googleAuth = async (req: AuthRequest, res: Response) => {
 			} catch (error) {
 				console.error("Error sending welcome email:", error);
 			}
-		} else {
-			console.log("Updating existing user:", profile.email); // Debug log
-			await User.updateOne(
-				{ _id: user._id },
-				{
-					$set: {
-						firstName: profile.given_name || user.firstName,
-						picture: profile.picture,
-						...(profile.family_name ? { lastName: profile.family_name } : {}),
-						authProvider: "google",
-					},
-				},
-			);
-			user = await User.findById(user._id);
 		}
+
+		console.log("Using existing user:", profile.email); // Debug log
+		user = await User.findById(user._id);
 
 		if (!user) {
 			console.error("User not found after creation/update"); // Debug log
