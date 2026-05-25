@@ -225,6 +225,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 					filteredMessages.map((msg) => (
 						<ChatBubble
 							key={msg?._id}
+							messageId={msg._id}
 							message={msg?.text ?? ""}
 							isSelf={msg?.senderId === user?._id}
 							timestamp={

@@ -35,6 +35,7 @@ type ChatState = {
 		imageFile?: File | null,
 		imagePreview?: string | null,
 	) => Promise<void>;
+	deleteMessage: (messageId: string) => Promise<void>;
 };
 
 const useChatStore = create<ChatState>((set, get) => ({
@@ -61,7 +62,6 @@ const useChatStore = create<ChatState>((set, get) => ({
 	setActiveChatId: (id) => set({ activeChatId: id }),
 	setSelectedUser: (selectedUser) => set({ selectedUser }),
 
-	// Fresh fetch — page 1, replaces contacts
 	getContacts: async (page = 1, search = "") => {
 		set({ isContactsLoading: true });
 		try {
@@ -83,7 +83,6 @@ const useChatStore = create<ChatState>((set, get) => ({
 		}
 	},
 
-	// Append next page
 	loadMoreContacts: async (search = "") => {
 		const { contactsPage, contactsHasMore, isLoadingMoreContacts } = get();
 		if (!contactsHasMore || isLoadingMoreContacts) return;
@@ -121,7 +120,6 @@ const useChatStore = create<ChatState>((set, get) => ({
 		}
 	},
 
-	// Initial load — newest MESSAGES_PAGE_LIMIT messages
 	getMessagesByUserId: async (id) => {
 		set({ isMessagesLoading: true });
 		try {
@@ -136,7 +134,6 @@ const useChatStore = create<ChatState>((set, get) => ({
 		}
 	},
 
-	// Load older messages — prepend to existing
 	loadMoreMessages: async (id) => {
 		const { messages, messagesHasMore, isLoadingMoreMessages } = get();
 		if (!messagesHasMore || isLoadingMoreMessages) return;
@@ -233,6 +230,25 @@ const useChatStore = create<ChatState>((set, get) => ({
 			}));
 			toast.error(
 				(error as ErrorResponse)?.message ?? "Failed to send message",
+			);
+		}
+	},
+
+	deleteMessage: async (messageId) => {
+		const snapshot = get().messages;
+
+		// Optimistically remove immediately
+		set((state) => ({
+			messages: state.messages.filter((m) => m._id !== messageId),
+		}));
+
+		try {
+			await messageApi.deleteMessage(messageId);
+		} catch (error) {
+			// Rollback on failure
+			set({ messages: snapshot });
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to delete message",
 			);
 		}
 	},

@@ -103,11 +103,11 @@ export const getChats = async (req: AuthRequest, res: Response) => {
 					lastUpdated: { $first: "$createdAt" },
 				},
 			},
+			{ $sort: { lastUpdated: -1 } },
 		]);
 
 		const partnerIds = conversations.map((c) => c._id);
 
-		// Apply search filter at the user lookup stage
 		const userFilter: Record<string, unknown> = { _id: { $in: partnerIds } };
 		if (search) {
 			userFilter.$or = [
@@ -121,7 +121,7 @@ export const getChats = async (req: AuthRequest, res: Response) => {
 		const userMap = new Map(users.map((u) => [u._id.toString(), u]));
 
 		const chats = conversations
-			.filter((c) => userMap.has(c._id.toString())) // drop partners filtered out by search
+			.filter((c) => userMap.has(c._id.toString()))
 			.map(({ _id, lastMessage, lastImage, lastUpdated }) => {
 				const user = userMap.get(_id.toString());
 				return {
@@ -187,20 +187,18 @@ export const getMessagesByUserId = async (req: AuthRequest, res: Response) => {
 			],
 		};
 
-		// If cursor provided, only fetch messages older than that _id
 		if (cursor) {
 			filter._id = { $lt: new mongoose.Types.ObjectId(cursor) };
 		}
 
 		const messages = await Message.find(filter)
 			.select("-__v")
-			.sort({ _id: -1 }) // newest first so $lt cursor works correctly
-			.limit(limit + 1); // fetch one extra to determine hasMore
+			.sort({ _id: -1 })
+			.limit(limit + 1);
 
 		const hasMore = messages.length > limit;
-		if (hasMore) messages.pop(); // remove the extra
+		if (hasMore) messages.pop();
 
-		// Reverse so they render oldest → newest in the UI
 		messages.reverse();
 
 		sendSuccessResponse(res, 200, "Messages fetched successfully", {
@@ -266,5 +264,39 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 	} catch (error) {
 		console.log("Error in sendMessage:", error);
 		sendErrorResponse(res, 500, "Error sending message");
+	}
+};
+
+export const deleteMessage = async (req: AuthRequest, res: Response) => {
+	try {
+		const loggedInUserId = req.user?.id;
+		if (!loggedInUserId) return sendErrorResponse(res, 401, "Unauthorized");
+
+		const { messageId } = req.params;
+
+		const message = await Message.findById(messageId);
+		if (!message) return sendErrorResponse(res, 404, "Message not found");
+
+		if (message.senderId.toString() !== loggedInUserId) {
+			return sendErrorResponse(
+				res,
+				403,
+				"Forbidden — you can only delete your own messages",
+			);
+		}
+
+		// If message has an image, delete it from Cloudinary first
+		if (message.image) {
+			const urlParts = message.image.split("/");
+			const publicId = urlParts.slice(-3).join("/").split(".")[0];
+			await cloudinary.uploader.destroy(publicId!);
+		}
+
+		await Message.findByIdAndDelete(messageId);
+
+		sendSuccessResponse(res, 200, "Message deleted successfully", null);
+	} catch (error) {
+		console.log("Error in deleteMessage:", error);
+		sendErrorResponse(res, 500, "Error deleting message");
 	}
 };
