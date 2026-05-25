@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import { authApi } from "@/api/auth";
 import { userApi } from "@/api/user";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
+import { axiosInstance } from "@/config/axios";
 
 type User = AuthResponse["user"];
 
@@ -25,6 +26,7 @@ type AuthStore = {
 	) => Promise<void>;
 	googleLogin: (credential: string) => Promise<void>;
 	logout: () => Promise<void>;
+	updateProfile: (profilePic: string) => Promise<void>;
 };
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -128,6 +130,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
 		} finally {
 			Cookies.remove("accessToken");
 			set({ user: null, isAuthenticated: false });
+		}
+	},
+
+	updateProfile: async (profilePic) => {
+		try {
+			const response = await axiosInstance.patch("/auth/update-profile", {
+				profilePic,
+			});
+			set({ user: response.data.user });
+			toast.success("Profile updated successfully!");
+		} catch (error: unknown) {
+			console.log("Error in updateProfile:", error);
+			const message =
+				(error as ErrorResponse)?.message ?? "Error updating profile";
+			toast.error(message);
 		}
 	},
 }));
