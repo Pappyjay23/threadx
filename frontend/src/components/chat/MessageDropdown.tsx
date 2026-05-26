@@ -7,12 +7,14 @@ interface MessageDropdownProps {
 	message?: string;
 	isSelf: boolean;
 	onDelete: () => void;
+	isLastMessage: boolean;
 }
 
 const MessageDropdown = ({
 	message,
 	isSelf,
 	onDelete,
+	isLastMessage,
 }: MessageDropdownProps) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [copied, setCopied] = useState(false);
@@ -23,7 +25,7 @@ const MessageDropdown = ({
 		try {
 			await navigator.clipboard.writeText(message);
 			setCopied(true);
-			
+
 			setTimeout(() => {
 				setCopied(false);
 				setIsOpen(false);
@@ -41,7 +43,8 @@ const MessageDropdown = ({
 	useEffect(() => {
 		if (!isOpen) return;
 
-		const handleClickOutside = (e: MouseEvent) => {
+		// Handle both click and touch interactions outside
+		const handleClickOutside = (e: Event) => {
 			if (
 				dropdownRef.current &&
 				!dropdownRef.current.contains(e.target as Node)
@@ -55,15 +58,16 @@ const MessageDropdown = ({
 		};
 
 		document.addEventListener("mousedown", handleClickOutside);
+		document.addEventListener("touchstart", handleClickOutside);
 		document.addEventListener("keydown", handleEscape);
 
 		return () => {
 			document.removeEventListener("mousedown", handleClickOutside);
+			document.removeEventListener("touchstart", handleClickOutside);
 			document.removeEventListener("keydown", handleEscape);
 		};
 	}, [isOpen]);
 
-	// Reset copied state when dropdown closes
 	useEffect(() => {
 		if (!isOpen) {
 			setCopied(false);
@@ -72,10 +76,10 @@ const MessageDropdown = ({
 
 	return (
 		<div ref={dropdownRef} className='relative top-5'>
-			{/* Trigger button */}
+			{/* Trigger button: Always visible on mobile, hovers on desktop */}
 			<button
 				onClick={() => setIsOpen(!isOpen)}
-				className='opacity-0 group-hover:opacity-100 p-1.5 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all duration-150 cursor-pointer'
+				className='opacity-100 lg:opacity-0 lg:group-hover:opacity-100 p-1.5 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all duration-150 cursor-pointer'
 				aria-label='Message options'>
 				<BsThreeDotsVertical className='text-sm' />
 			</button>
@@ -83,8 +87,7 @@ const MessageDropdown = ({
 			{/* Dropdown */}
 			{isOpen && (
 				<div
-					className={`absolute top-full mt-1 ${isSelf ? "right-0" : "left-0"} bg-secondary border border-primary/20 rounded-md shadow-xl py-1 min-w-35 z-10 animate-scale-in`}>
-					{/* Copy — only if text exists */}
+					className={`absolute bg-secondary border border-primary/20 rounded-md shadow-xl py-1 min-w-35 z-10 animate-scale-in	${isLastMessage ? "bottom-full mb-1" : "top-full mt-1"}	${isSelf ? (isLastMessage ? "right-full md:right-0" : "right-0") : "left-0"}`}>
 					{message && (
 						<button
 							onClick={handleCopy}
@@ -108,7 +111,6 @@ const MessageDropdown = ({
 						</button>
 					)}
 
-					{/* Delete — only on self messages */}
 					{isSelf && (
 						<button
 							onClick={handleDelete}

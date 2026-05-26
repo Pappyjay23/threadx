@@ -222,7 +222,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 				{isMessagesLoading ? (
 					<MessageSkeletonLoader />
 				) : filteredMessages.length > 0 ? (
-					filteredMessages.map((msg) => (
+					filteredMessages.map((msg, index) => (
 						<ChatBubble
 							key={msg?._id}
 							messageId={msg._id}
@@ -238,6 +238,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 							}
 							image={msg?.image}
 							searchQuery={messageSearch}
+							isLastMessage={index === filteredMessages.length - 1}
 						/>
 					))
 				) : (

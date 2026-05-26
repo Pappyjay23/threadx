@@ -140,7 +140,7 @@ export const getChats = async (req: AuthRequest, res: Response) => {
 							})
 						: "",
 					isOnline: false,
-					message: lastMessage ?? (lastImage ? "📷 Image" : ""),
+					message: lastImage ? `📷 ${lastMessage}` : (lastMessage ?? ""),
 					unread: 0,
 					typing: false,
 					isPinned: false,

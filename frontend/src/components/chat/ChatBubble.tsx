@@ -12,6 +12,7 @@ interface ChatBubbleProps {
 	isSelf: boolean;
 	timestamp: string;
 	searchQuery?: string;
+	isLastMessage: boolean;
 }
 
 const ChatBubble = ({
@@ -21,6 +22,7 @@ const ChatBubble = ({
 	isSelf,
 	timestamp,
 	searchQuery = "",
+	isLastMessage
 }: ChatBubbleProps) => {
 	const { chats, activeChatId, deleteMessage } = useChatStore();
 	const chat = chats.find((c) => c.id === activeChatId);
@@ -55,7 +57,7 @@ const ChatBubble = ({
 									src={image}
 									alt='Shared image'
 									onClick={() => setLightboxOpen(true)}
-									className='w-full max-w-xs object-cover rounded-sm cursor-zoom-in transition-opacity duration-200 hover:opacity-90'
+									className='w-full max-w-xs object-cover rounded-sm cursor-zoom-in transition-opacity duration-200 hover:opacity-90 select-none'
 								/>
 							)}
 							{message && (
@@ -77,6 +79,7 @@ const ChatBubble = ({
 						message={message}
 						isSelf={isSelf}
 						onDelete={() => setConfirmDeleteOpen(true)}
+						isLastMessage={isLastMessage}
 					/>
 				</div>
 			</div>
