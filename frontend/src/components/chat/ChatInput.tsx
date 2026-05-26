@@ -4,11 +4,13 @@ import { isMobile } from "@/utils/helpers";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import React, { useEffect, useRef, useState } from "react";
 import { BsEmojiSmileFill } from "react-icons/bs";
-import { FiImage } from "react-icons/fi";
-import { IoSend } from "react-icons/io5";
-import { IoCloseOutline } from "react-icons/io5";
-import ChatTextArea from "./ChatTextArea";
+import { FiEye, FiEyeOff, FiImage } from "react-icons/fi";
+import { IoCloseOutline, IoSend } from "react-icons/io5";
+import type { Components } from "react-markdown";
+import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import ChatTextArea from "./ChatTextArea";
+import FormattingToolbar from "./FormattingToolbar";
 
 interface ChatInputProps {
 	onSendMessage: (
@@ -17,6 +19,38 @@ interface ChatInputProps {
 		imagePreview?: string | null,
 	) => void;
 }
+
+const previewComponents: Components = {
+	p: ({ children }) => (
+		<p className='whitespace-pre-wrap wrap-break-word leading-relaxed text-white/80'>
+			{children}
+		</p>
+	),
+	strong: ({ children }) => (
+		<strong className='font-semibold text-white'>{children}</strong>
+	),
+	em: ({ children }) => <em className='italic'>{children}</em>,
+	code: ({ children, className }) => {
+		const isBlock = !!className;
+		if (isBlock) {
+			return (
+				<code className='block font-mono text-[11px] bg-white/10 text-primary/90 whitespace-pre'>
+					{children}
+				</code>
+			);
+		}
+		return (
+			<code className='bg-white/10 text-primary/90 rounded px-1 py-0.5 font-mono text-[11px]'>
+				{children}
+			</code>
+		);
+	},
+	pre: ({ children }) => (
+		<pre className='bg-white/5 border border-primary/10 rounded-lg px-3 py-2.5 my-1 overflow-x-auto'>
+			{children}
+		</pre>
+	),
+};
 
 const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 	const { activeChatId, isSoundEnabled } = useChatStore();
@@ -31,6 +65,19 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 	const [showPicker, setShowPicker] = useState(false);
 	const [imageFile, setImageFile] = useState<File | null>(null);
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
+	const [isPreviewMode, setIsPreviewMode] = useState(false);
+	const [toolbarPosition, setToolbarPosition] = useState<{
+		top: number;
+		left: number;
+	} | null>(null);
+	const [savedSelection, setSavedSelection] = useState<{
+		start: number;
+		end: number;
+	} | null>(null);
+
+	useEffect(() => {
+		if (!text) setIsPreviewMode(false);
+	}, [text]);
 
 	useEffect(() => {
 		if (!showPicker) return;
@@ -55,6 +102,7 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		setText("");
 		setImageFile(null);
 		setImagePreview(null);
+		setIsPreviewMode(false);
 		if (fileInputRef.current) fileInputRef.current.value = "";
 		if (isSoundEnabled) playSendMessageSound();
 	};
@@ -88,6 +136,74 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		setImagePreview(URL.createObjectURL(file));
 	};
 
+	const handleTextareaMouseUp = () => {
+		const textarea = textareaRef.current;
+		if (!textarea) return;
+
+		const { selectionStart, selectionEnd } = textarea;
+
+		// Only show if there's an actual selection
+		if (selectionStart === selectionEnd) {
+			setToolbarPosition(null);
+			return;
+		}
+
+		setSavedSelection({ start: selectionStart, end: selectionEnd });
+
+		// Position toolbar above the selection
+		const rect = textarea.getBoundingClientRect();
+		setToolbarPosition({
+			top: rect.top - 44, // above the textarea
+			left: rect.left + 8,
+		});
+	};
+
+	const handleFormat = (syntax: "bold" | "italic" | "code" | "codeblock") => {
+		if (!savedSelection || !textareaRef.current) return;
+
+		const { start, end } = savedSelection;
+		const selected = text.slice(start, end);
+
+		// Trim leading/trailing whitespace from selection
+		// but track how much was trimmed to adjust positions
+		const trimmedStart = selected.length - selected.trimStart().length;
+		const trimmedEnd = selected.length - selected.trimEnd().length;
+
+		const adjustedStart = start + trimmedStart;
+		const adjustedEnd = end - trimmedEnd;
+		const trimmedSelected = selected.trim();
+
+		// Nothing left after trimming — bail
+		if (!trimmedSelected) return;
+
+		const wrappers = {
+			bold: { open: "**", close: "**" },
+			italic: { open: "*", close: "*" },
+			code: { open: "`", close: "`" },
+			codeblock: { open: "```\n", close: "\n```" },
+		};
+
+		const { open, close } = wrappers[syntax];
+
+		const newText =
+			text.slice(0, adjustedStart) +
+			open +
+			trimmedSelected +
+			close +
+			text.slice(adjustedEnd);
+
+		setText(newText);
+
+		// Place cursor after the closing wrapper
+		requestAnimationFrame(() => {
+			if (!textareaRef.current) return;
+			const newCursor =
+				adjustedStart + open.length + trimmedSelected.length + close.length;
+			textareaRef.current.focus();
+			textareaRef.current.setSelectionRange(newCursor, newCursor);
+		});
+	};
+
 	useEffect(() => {
 		if (!activeChatId) return;
 		requestAnimationFrame(() => {
@@ -96,11 +212,19 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		});
 	}, [activeChatId]);
 
+	// Focus textarea when switching back to edit mode
+	useEffect(() => {
+		if (!isPreviewMode) {
+			requestAnimationFrame(() => textareaRef.current?.focus());
+		}
+	}, [isPreviewMode]);
+
+	const hasMarkdown = /\*\*|__|`|\*|_/.test(text);
+
 	return (
 		<form
 			onSubmit={handleSubmit}
 			className='p-3 bg-background-noise border-t border-primary/10'>
-			{/* Image preview strip */}
 			{imagePreview && (
 				<div className='w-full md:w-[90%] mx-auto mb-2 flex items-center gap-2'>
 					<div className='relative inline-block'>
@@ -155,18 +279,45 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 				</button>
 
 				<div className='relative flex-1'>
-					<ChatTextArea
-						ref={textareaRef}
-						value={text}
-						placeholder='Type your message here...'
-						className='pr-4'
-						onChange={(e) => {
-							setText(e.target.value);
-							if (isSoundEnabled) playRandomKeyStrokeSound();
-						}}
-						onKeyDown={handleKeyDown}
-					/>
+					{isPreviewMode ? (
+						<div className='w-full max-w-lg border border-primary/40 rounded-xl px-4 py-2.5 text-xs min-h-10 max-h-30 overflow-y-auto bg-transparent'>
+							<ReactMarkdown components={previewComponents}>
+								{text}
+							</ReactMarkdown>
+						</div>
+					) : (
+						<ChatTextArea
+							ref={textareaRef}
+							value={text}
+							placeholder='Type your message here...'
+							className='pr-4'
+							onChange={(e) => {
+								setText(e.target.value);
+								if (isSoundEnabled) playRandomKeyStrokeSound();
+							}}
+							onKeyDown={handleKeyDown}
+							onMouseUp={handleTextareaMouseUp}
+						/>
+					)}
 				</div>
+
+				{hasMarkdown && text && (
+					<button
+						type='button'
+						onClick={() => setIsPreviewMode((prev) => !prev)}
+						aria-label={isPreviewMode ? "Edit message" : "Preview message"}
+						className={`p-2 border rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center shrink-0 ${
+							isPreviewMode
+								? "border-primary bg-primary/10 text-primary"
+								: "border-primary/30 text-foreground/50 hover:border-primary/60 hover:text-foreground/80"
+						}`}>
+						{isPreviewMode ? (
+							<FiEyeOff className='text-xs' />
+						) : (
+							<FiEye className='text-xs' />
+						)}
+					</button>
+				)}
 
 				{showPicker && (
 					<div
@@ -225,11 +376,18 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 					<IoSend className='text-xs' />
 				</button>
 			</div>
+
 			{text && (
-				<p className='text-[10px] text-foreground/25 text-center mt-1'>
-					Formatting hints: **bold** &nbsp;·&nbsp; *italic* &nbsp;·&nbsp; `code` &nbsp;·&nbsp; ```code block```
+				<p className='text-[10px] text-foreground/25 text-center mt-1.5'>
+					Formatting hints: **bold** · *italic* · `code` · ```block```
 				</p>
 			)}
+
+			<FormattingToolbar
+				position={toolbarPosition}
+				onFormat={handleFormat}
+				onClose={() => setToolbarPosition(null)}
+			/>
 		</form>
 	);
 };

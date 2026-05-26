@@ -11,6 +11,7 @@ import MessageSkeletonLoader from "./MessageSkeletonLoader";
 import PresenceAvatar from "./PresenceAvatar";
 import DateSeparator from "./DateSeparator";
 import { getDateLabel } from "@/utils/helpers";
+import ChatContextMenu from "./ChatContextMenu";
 
 interface ChatActiveAreaProps {
 	chatId?: string;
@@ -34,12 +35,52 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 	const [showProfile, setShowProfile] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [messageSearch, setMessageSearch] = useState("");
+	const [contextMenu, setContextMenu] = useState<{
+		top: number;
+		left: number;
+	} | null>(null);
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const messageEndRef = useRef<HTMLDivElement>(null);
 	const topSentinelRef = useRef<HTMLDivElement>(null);
 	const isInitialLoad = useRef(false);
 	const searchInputRef = useRef<HTMLInputElement>(null);
+
+	const handleWorkspaceContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+		const target = e.target as HTMLElement;
+		const bubbleElement = target.closest("[data-bubble='true']");
+
+		// If the user right-clicked a bubble, let the bubble or browser handle it
+		if (bubbleElement) {
+			return;
+		}
+
+		// Explicitly stop the browser menu from showing up
+		e.preventDefault();
+		e.stopPropagation();
+
+		const menuWidth = 176;
+		const menuHeight = 90;
+		const left = Math.min(e.clientX, window.innerWidth - menuWidth - 8);
+		const top = Math.min(e.clientY, window.innerHeight - menuHeight - 8);
+
+		setContextMenu({ top, left });
+	};
+
+	// Context Menu Handler
+	useEffect(() => {
+		const closeMenu = () => {
+			setContextMenu(null);
+		};
+
+		document.addEventListener("click", closeMenu);
+		document.addEventListener("contextmenu", closeMenu);
+
+		return () => {
+			document.removeEventListener("click", closeMenu);
+			document.removeEventListener("contextmenu", closeMenu);
+		};
+	}, []);
 
 	useEffect(() => {
 		if (chatId) {
@@ -49,7 +90,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 			setIsSearchOpen(false);
 			setMessageSearch("");
 		}
-	}, [chatId]);
+	}, [chatId, getMessagesByUserId]);
 
 	// Scroll to bottom logic
 	useEffect(() => {
@@ -76,7 +117,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		}
 	}, [messages]);
 
-	// Load older messages when top sentinel is visible — preserve scroll position
+	// Load older messages when top sentinel is visible
 	useEffect(() => {
 		if (!topSentinelRef.current) return;
 
@@ -94,7 +135,6 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 
 				await loadMoreMessages(chatId!);
 
-				// After prepend, restore position so viewport doesn't jump
 				requestAnimationFrame(() => {
 					if (container) {
 						container.scrollTop += container.scrollHeight - prevScrollHeight;
@@ -106,12 +146,13 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 
 		observer.observe(topSentinelRef.current);
 		return () => observer.disconnect();
-	}, [chatId, messagesHasMore, isLoadingMoreMessages]);
+	}, [chatId, messagesHasMore, isLoadingMoreMessages, loadMoreMessages]);
 
 	// Focus search input when opened
 	useEffect(() => {
 		if (isSearchOpen) {
-			setTimeout(() => searchInputRef.current?.focus(), 50);
+			const timer = setTimeout(() => searchInputRef.current?.focus(), 50);
+			return () => clearTimeout(timer);
 		}
 	}, [isSearchOpen]);
 
@@ -206,11 +247,11 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 				</div>
 			</div>
 
-			{/* Messages */}
+			{/* Messages Viewport */}
 			<div
 				ref={scrollContainerRef}
+				onContextMenu={handleWorkspaceContextMenu}
 				className='flex-1 overflow-y-auto p-4 space-y-1'>
-				{/* Top sentinel for loading older messages */}
 				<div ref={topSentinelRef} className='py-1'>
 					{isLoadingMoreMessages && (
 						<div className='flex justify-center py-2'>
@@ -302,6 +343,13 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 							}
 						: undefined
 				}
+			/>
+
+			<ChatContextMenu
+				position={contextMenu}
+				onSearchMessages={() => setIsSearchOpen(true)}
+				onCloseChat={onCloseChat}
+				onClose={() => setContextMenu(null)}
 			/>
 		</div>
 	);

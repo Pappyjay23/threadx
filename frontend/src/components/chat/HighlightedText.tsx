@@ -1,4 +1,6 @@
-import { parseMarkdown } from "@/utils/helpers";
+import React from "react";
+import type { Components } from "react-markdown";
+import ReactMarkdown from "react-markdown";
 
 interface HighlightedTextProps {
 	text: string;
@@ -14,7 +16,7 @@ const highlightSegment = (content: string, query: string): React.ReactNode => {
 
 	return parts.map((part, i) =>
 		part.toLowerCase() === query.toLowerCase() ? (
-			<mark key={i} className='bg-primary/40 text-white rounded-sm px-0.5'>
+			<mark key={i} className='bg-red-500/40 text-white rounded-sm px-0.5'>
 				{part}
 			</mark>
 		) : (
@@ -23,53 +25,57 @@ const highlightSegment = (content: string, query: string): React.ReactNode => {
 	);
 };
 
+const createComponents = (query: string): Components => ({
+	p: ({ children }) => (
+		<p className='whitespace-pre-wrap wrap-break-word leading-relaxed'>
+			{React.Children.map(children, (child) =>
+				typeof child === "string" ? highlightSegment(child, query) : child,
+			)}
+		</p>
+	),
+	strong: ({ children }) => (
+		<strong className='font-semibold text-white'>
+			{typeof children === "string"
+				? highlightSegment(children, query)
+				: children}
+		</strong>
+	),
+	em: ({ children }) => (
+		<em className='italic'>
+			{typeof children === "string"
+				? highlightSegment(children, query)
+				: children}
+		</em>
+	),
+	code: ({ children, className }) => {
+		// Block code (inside pre)
+		const isBlock = !!className;
+		if (isBlock) {
+			return (
+				<code className='block font-mono text-[11px] bg-background text-foreground whitespace-pre select-text'>
+					{children}
+				</code>
+			);
+		}
+		// Inline code
+		return (
+			<code className='bg-background text-foreground rounded px-1 py-0.5 font-mono text-[11px] select-text'>
+				{typeof children === "string"
+					? highlightSegment(children, query)
+					: children}
+			</code>
+		);
+	},
+	pre: ({ children }) => (
+		<pre className='bg-background border border-primary/10 rounded-lg px-3 py-2.5 my-1 overflow-x-auto select-text'>
+			{children}
+		</pre>
+	),
+});
+
 const HighlightedText = ({ text, query }: HighlightedTextProps) => {
-	const nodes = parseMarkdown(text);
-
 	return (
-		<>
-			{nodes.map((node, i) => {
-				if (node.type === "linebreak") return <br key={i} />;
-
-				if (node.type === "bold") {
-					return (
-						<strong key={i} className='font-semibold'>
-							{highlightSegment(node.content, query)}
-						</strong>
-					);
-				}
-
-				if (node.type === "italic") {
-					return (
-						<em key={i} className='italic'>
-							{highlightSegment(node.content, query)}
-						</em>
-					);
-				}
-
-				if (node.type === "code") {
-					return (
-						<code
-							key={i}
-							className='bg-background text-foreground rounded px-1 py-0.5 font-mono text-[11px]'>
-							{highlightSegment(node.content, query)}
-						</code>
-					);
-				}
-
-				if (node.type === "codeblock") {
-					return (
-						<pre
-							key={i}
-							className='bg-background border border-primary/10 rounded-lg px-3 py-2.5 mt-1 mb-1 font-mono text-[11px] text-foreground overflow-x-auto whitespace-pre select-text'>
-							<code>{node.content}</code>
-						</pre>
-					);
-				}
-
-				return <span key={i}>{highlightSegment(node.content, query)}</span>;
-			})}
-		</>
+		<ReactMarkdown components={createComponents(query)}>{text}</ReactMarkdown>
 	);
 };
 

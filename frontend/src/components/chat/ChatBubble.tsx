@@ -47,9 +47,10 @@ const ChatBubble = ({
 						</p>
 
 						<div
+							data-bubble='true'
 							className={`max-w-xs text-xs shadow-lg overflow-hidden ${
 								isSelf
-									? "bg-primary/80 text-white rounded-t-lg rounded-bl-lg"
+									? "bg-primary/60 text-white rounded-t-lg rounded-bl-lg"
 									: "text-white/80 rounded-t-lg rounded-br-lg bg-secondary border border-primary/10"
 							}`}>
 							{image && (
@@ -62,10 +63,10 @@ const ChatBubble = ({
 							)}
 							{message && (
 								<div
-									className={`py-2 px-4 font-light ${image ? "border-t border-white/10" : ""}`}>
-									<span className='whitespace-pre-wrap wrap-break-word'>
-										<HighlightedText text={message} query={searchQuery} />
-									</span>
+									className={`py-2 px-4 font-light select-text ${
+										image ? "border-t border-white/10" : ""
+									}`}>
+									<HighlightedText text={message} query={searchQuery} />
 								</div>
 							)}
 						</div>
