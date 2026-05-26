@@ -8,6 +8,7 @@ interface MessageDropdownProps {
 	isSelf: boolean;
 	onDelete: () => void;
 	isLastMessage: boolean;
+	hasImage: boolean;
 }
 
 const MessageDropdown = ({
@@ -15,6 +16,7 @@ const MessageDropdown = ({
 	isSelf,
 	onDelete,
 	isLastMessage,
+	hasImage,
 }: MessageDropdownProps) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [copied, setCopied] = useState(false);
@@ -87,7 +89,7 @@ const MessageDropdown = ({
 			{/* Dropdown */}
 			{isOpen && (
 				<div
-					className={`absolute bg-secondary border border-primary/20 rounded-md shadow-xl py-1 min-w-35 z-10 animate-scale-in	${isLastMessage ? "bottom-full mb-1" : "top-full mt-1"}	${isSelf ? (isLastMessage ? "right-full md:right-0" : "right-0") : "left-0"}`}>
+					className={`absolute bg-secondary border border-primary/20 rounded-md shadow-xl py-1 min-w-35 z-10 animate-scale-in	${isLastMessage ? (hasImage ? "top-full mt-1" : "bottom-full mb-1") : "top-full mt-1"}	${isSelf ? (isLastMessage ? "right-full md:right-0" : "right-0") : "left-0"}`}>
 					{message && (
 						<button
 							onClick={handleCopy}

@@ -225,6 +225,11 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 					<IoSend className='text-xs' />
 				</button>
 			</div>
+			{text && (
+				<p className='text-[10px] text-foreground/25 text-center mt-1'>
+					Formatting hints: **bold** &nbsp;·&nbsp; *italic* &nbsp;·&nbsp; `code` &nbsp;·&nbsp; ```code block```
+				</p>
+			)}
 		</form>
 	);
 };

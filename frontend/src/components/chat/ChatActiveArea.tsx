@@ -9,6 +9,8 @@ import ChatInput from "./ChatInput";
 import ChatProfilePanel from "./ChatProfilePanel";
 import MessageSkeletonLoader from "./MessageSkeletonLoader";
 import PresenceAvatar from "./PresenceAvatar";
+import DateSeparator from "./DateSeparator";
+import { getDateLabel } from "@/utils/helpers";
 
 interface ChatActiveAreaProps {
 	chatId?: string;
@@ -222,25 +224,41 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 				{isMessagesLoading ? (
 					<MessageSkeletonLoader />
 				) : filteredMessages.length > 0 ? (
-					filteredMessages.map((msg, index) => (
-						<ChatBubble
-							key={msg?._id}
-							messageId={msg._id}
-							message={msg?.text ?? ""}
-							isSelf={msg?.senderId === user?._id}
-							timestamp={
-								msg?.createdAt
-									? new Date(msg.createdAt).toLocaleTimeString([], {
-											hour: "2-digit",
-											minute: "2-digit",
-										})
-									: ""
-							}
-							image={msg?.image}
-							searchQuery={messageSearch}
-							isLastMessage={index === filteredMessages.length - 1}
-						/>
-					))
+					filteredMessages.map((msg, index) => {
+						const msgDate = msg?.createdAt ? new Date(msg.createdAt) : null;
+						const prevMsg = filteredMessages[index - 1];
+						const prevDate = prevMsg?.createdAt
+							? new Date(prevMsg.createdAt)
+							: null;
+
+						const showDateSeparator =
+							msgDate &&
+							(!prevDate || msgDate.toDateString() !== prevDate.toDateString());
+
+						return (
+							<div key={msg?._id}>
+								{showDateSeparator && (
+									<DateSeparator label={getDateLabel(msgDate)} />
+								)}
+								<ChatBubble
+									messageId={msg._id}
+									message={msg?.text ?? ""}
+									isSelf={msg?.senderId === user?._id}
+									timestamp={
+										msg?.createdAt
+											? new Date(msg.createdAt).toLocaleTimeString([], {
+													hour: "2-digit",
+													minute: "2-digit",
+												})
+											: ""
+									}
+									image={msg?.image}
+									searchQuery={messageSearch}
+									isLastMessage={index === filteredMessages.length - 1}
+								/>
+							</div>
+						);
+					})
 				) : (
 					<div className='h-full flex items-center justify-center'>
 						<EmptyState
