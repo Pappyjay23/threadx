@@ -17,6 +17,7 @@
     "@arcjet/node": "^1.4.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
+    "cookie": "^1.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -26,6 +27,7 @@
     "mongoose": "^9.6.2",
     "nodemailer": "^8.0.7",
     "resend": "^6.12.3",
+    "socket.io": "^4.8.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {

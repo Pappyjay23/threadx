@@ -7,6 +7,7 @@ import EmptyState from "../shared/EmptyState";
 import Input from "../ui/Input";
 import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
 import PresenceAvatar from "./PresenceAvatar";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface ContactListProps {
 	onSelectChat: (id: string) => void;
@@ -19,6 +20,7 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const sentinelRef = useRef<HTMLDivElement>(null);
 
+	const { onlineUsers } = useAuthStore();
 	const {
 		contacts,
 		contactsHasMore,
@@ -28,7 +30,6 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 		loadMoreContacts,
 		setSelectedUser,
 	} = useChatStore();
-
 	// Initial load
 	useEffect(() => {
 		getContacts(1, "");
@@ -107,7 +108,7 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 								<PresenceAvatar
 									src={contact.image}
 									name={contact.name}
-									isOnline={contact.isOnline}
+									isOnline={onlineUsers.includes(contact.id)}
 									size='md'
 								/>
 								<div className='flex-1 min-w-0'>

@@ -12,6 +12,7 @@ import EmptyState from "../shared/EmptyState";
 import Input from "../ui/Input";
 import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
 import PresenceAvatar from "./PresenceAvatar";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface ConversationListProps {
 	onSelectChat: (id: string) => void;
@@ -31,6 +32,7 @@ const ConversationList = ({
 	const searchRef = useRef<HTMLInputElement | null>(null);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+	const { onlineUsers } = useAuthStore();
 	const { chats, setSelectedUser, getChatPartners, isChatsLoading } =
 		useChatStore();
 
@@ -124,7 +126,7 @@ const ConversationList = ({
 								<PresenceAvatar
 									src={chat.image}
 									name={chat.name}
-									isOnline={chat.isOnline}
+									isOnline={onlineUsers.includes(chat.id)}
 									size='md'
 								/>
 								<div className='flex-1 min-w-0'>

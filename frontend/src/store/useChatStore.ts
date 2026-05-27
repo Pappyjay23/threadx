@@ -36,6 +36,8 @@ type ChatState = {
 		imagePreview?: string | null,
 	) => Promise<void>;
 	deleteMessage: (messageId: string) => Promise<void>;
+	subscribeToMessages: () => void;
+	unsubscribeFromMessages: () => void;
 };
 
 const useChatStore = create<ChatState>((set, get) => ({
@@ -250,6 +252,46 @@ const useChatStore = create<ChatState>((set, get) => ({
 			toast.error(
 				(error as ErrorResponse)?.message ?? "Failed to delete message",
 			);
+		}
+	},
+
+	subscribeToMessages: () => {
+		const { selectedUser, isSoundEnabled } = get();
+		if (!selectedUser) return;
+
+		const socket = useAuthStore.getState().socket;
+		if (!socket) {
+			console.warn("Cannot subscribe to messages: Socket not available");
+			return;
+		}
+
+		socket.on("newMessage", (message) => {
+			// This ensures that the message is received by the correct user
+			const isMessageSentFromSelectedUser =
+				message.senderId === selectedUser.id;
+			if (!isMessageSentFromSelectedUser) return;
+
+			set((state) => ({
+				messages: [
+					...state.messages.filter((m) => m._id !== message._id),
+					message,
+				],
+			}));
+			if (isSoundEnabled) {
+				const notificationSound = new Audio("/sounds/notification.mp3");
+
+				notificationSound.currentTime = 0; //This is for a better UX.
+				notificationSound
+					.play()
+					.catch((error) => console.log("Audio play failed", error));
+			}
+		});
+	},
+
+	unsubscribeFromMessages: () => {
+		const socket = useAuthStore.getState().socket;
+		if (socket) {
+			socket.off("newMessage");
 		}
 	},
 }));

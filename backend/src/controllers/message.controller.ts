@@ -9,6 +9,7 @@ import {
 	sendErrorResponse,
 	sendSuccessResponse,
 } from "../utils/response.utils.js";
+import { getReceiverSocketId, io } from "../config/socket.config.js";
 
 const CONTACTS_PAGE_LIMIT = 20;
 const MESSAGES_PAGE_LIMIT = 30;
@@ -51,7 +52,6 @@ export const getContacts = async (req: AuthRequest, res: Response) => {
 			email: user.email,
 			image: user.picture ?? "",
 			username: user.email.split("@")[0],
-			isOnline: false,
 			dateJoined: new Date(user.createdAt).toLocaleDateString("en-US", {
 				month: "long",
 				day: "numeric",
@@ -139,7 +139,6 @@ export const getChats = async (req: AuthRequest, res: Response) => {
 								year: "numeric",
 							})
 						: "",
-					isOnline: false,
 					message: lastImage ? `📷 ${lastMessage}` : (lastMessage ?? ""),
 					unread: 0,
 					typing: false,
@@ -259,6 +258,11 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 			text,
 			image,
 		});
+
+		const receiverSocketId = getReceiverSocketId(userToChatId);
+		if (receiverSocketId) {
+			io.to(receiverSocketId).emit("newMessage", message);
+		}
 
 		sendSuccessResponse(res, 201, "Message sent successfully", message);
 	} catch (error) {

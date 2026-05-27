@@ -29,8 +29,13 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		getMessagesByUserId,
 		loadMoreMessages,
 		sendMessage,
+		subscribeToMessages,
+		unsubscribeFromMessages,
 	} = useChatStore();
-	const { user } = useAuthStore();
+	const { user, onlineUsers } = useAuthStore();
+
+	const isOnline =
+		selectedUser && onlineUsers.includes(selectedUser.id.toString());
 
 	const [showProfile, setShowProfile] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -86,11 +91,21 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		if (chatId) {
 			isInitialLoad.current = true;
 			getMessagesByUserId(chatId);
+			subscribeToMessages();
 			setShowProfile(false);
 			setIsSearchOpen(false);
 			setMessageSearch("");
 		}
-	}, [chatId, getMessagesByUserId]);
+
+		return () => {
+			unsubscribeFromMessages();
+		};
+	}, [
+		chatId,
+		getMessagesByUserId,
+		subscribeToMessages,
+		unsubscribeFromMessages,
+	]);
 
 	// Scroll to bottom logic
 	useEffect(() => {
@@ -182,7 +197,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 					className='flex items-center gap-3 cursor-pointer group shrink-0'
 					onClick={() => setShowProfile(true)}>
 					<PresenceAvatar
-						isOnline={selectedUser?.isOnline ?? false}
+						isOnline={isOnline ?? false}
 						size='md'
 						src={selectedUser?.image}
 						name={selectedUser?.name}
@@ -193,9 +208,9 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 						</p>
 						<span
 							className={`text-[10px] ${
-								selectedUser?.isOnline ? "text-[#10b981]" : "text-white/40"
+								isOnline ? "text-[#10b981]" : "text-white/40"
 							} font-light tracking-wide`}>
-							{selectedUser?.isOnline ? "Online" : "Offline"}
+							{isOnline ? "Online" : "Offline"}
 						</span>
 					</div>
 				</div>
@@ -336,7 +351,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 								id: selectedUser.id,
 								name: selectedUser.name,
 								image: selectedUser.image,
-								isOnline: selectedUser.isOnline,
+								isOnline: isOnline || false,
 								email: selectedUser.email,
 								username: selectedUser.username,
 								dateJoined: selectedUser.dateJoined,

@@ -9,7 +9,7 @@ export const getInitials = (name: string) => {
 
 export const isMobile = () =>
 	typeof window !== "undefined" &&
-	window.matchMedia("(max-width: 767px)").matches;
+	window.matchMedia("(max-width: 1024px)").matches;
 
 export const formatDate = (date: Date) => {
 	const options: Intl.DateTimeFormatOptions = {
