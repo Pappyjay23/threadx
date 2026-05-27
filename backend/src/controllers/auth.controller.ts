@@ -33,6 +33,7 @@ import {
 	sendPasswordResetEmail,
 	sendWelcomeEmail,
 } from "../utils/email.utils.js";
+import cloudinary from "../config/cloudinary.config.js";
 
 const googleClient = new OAuth2Client(ENV.GOOGLE_CLIENT_ID);
 
@@ -214,21 +215,10 @@ export const googleAuth = async (req: AuthRequest, res: Response) => {
 			} catch (error) {
 				console.error("Error sending welcome email:", error);
 			}
-		} else {
-			console.log("Updating existing user:", profile.email); // Debug log
-			await User.updateOne(
-				{ _id: user._id },
-				{
-					$set: {
-						firstName: profile.given_name || user.firstName,
-						picture: profile.picture,
-						...(profile.family_name ? { lastName: profile.family_name } : {}),
-						authProvider: "google",
-					},
-				},
-			);
-			user = await User.findById(user._id);
 		}
+
+		console.log("Using existing user:", profile.email); // Debug log
+		user = await User.findById(user._id);
 
 		if (!user) {
 			console.error("User not found after creation/update"); // Debug log
@@ -451,5 +441,60 @@ export const resetPassword = async (req: Request, res: Response) => {
 		}
 
 		sendErrorResponse(res, 500, error.message || "Error resetting password");
+	}
+};
+
+export const uploadProfileSignature = (req: Request, res: Response) => {
+	const timestamp = Math.round(Date.now() / 1000);
+	const folder = "threadx/profile-pictures";
+
+	const signature = cloudinary.utils.api_sign_request(
+		{ timestamp, folder },
+		ENV.CLOUDINARY_API_SECRET!,
+	);
+
+	res.json({
+		timestamp,
+		signature,
+		cloudName: ENV.CLOUDINARY_CLOUD_NAME,
+		apiKey: ENV.CLOUDINARY_API_KEY,
+		folder,
+	});
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+	try {
+		const { profilePic } = req.body;
+
+		if (!profilePic) {
+			return res.status(400).json({ message: "Profile picture is required" });
+		}
+
+		const userId = req.user?.id;
+		const user = await User.findById(userId);
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		// Delete previous image from Cloudinary if it exists
+		if (user.picture) {
+			const urlParts = user.picture.split("/");
+			const publicId = urlParts.slice(-3).join("/").split(".")[0];
+			await cloudinary.uploader.destroy(publicId!);
+		}
+
+		const updatedUser = await User.findByIdAndUpdate(
+			userId,
+			{ picture: profilePic },
+			{ returnDocument: "after" },
+		).select("-password -__v");
+
+		return res.status(200).json({
+			message: "Profile picture updated successfully",
+			user: updatedUser,
+		});
+	} catch (error) {
+		console.log("Error in updateProfile:", error);
+		res.status(500).json({ message: "Internal server error" });
 	}
 };

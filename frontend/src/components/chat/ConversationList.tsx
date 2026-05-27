@@ -1,18 +1,25 @@
-import { useState, useMemo, useRef } from "react";
+import useChatStore from "@/store/useChatStore";
+import type { ActiveTab } from "@/types/chat";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BsPin } from "react-icons/bs";
 import { FiPlus, FiSearch } from "react-icons/fi";
-import { IoSearchOutline, IoCloseOutline } from "react-icons/io5";
-import Input from "../ui/Input";
-import PresenceAvatar from "./PresenceAvatar";
-import type { ActiveTab } from "@/types/chat";
+import {
+	IoChatbubblesOutline,
+	IoCloseOutline,
+	IoSearchOutline,
+} from "react-icons/io5";
 import EmptyState from "../shared/EmptyState";
-import useChatStore from "@/store/useChatStore";
+import Input from "../ui/Input";
+import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
+import PresenceAvatar from "./PresenceAvatar";
 
 interface ConversationListProps {
 	onSelectChat: (id: string) => void;
 	activeChatId?: string;
 	setActiveTab: React.Dispatch<React.SetStateAction<ActiveTab>>;
 }
+
+const DEBOUNCE_MS = 350;
 
 const ConversationList = ({
 	onSelectChat,
@@ -22,19 +29,26 @@ const ConversationList = ({
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const searchRef = useRef<HTMLInputElement | null>(null);
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const { chats } = useChatStore();
+	const { chats, setSelectedUser, getChatPartners, isChatsLoading } =
+		useChatStore();
 
-	const filteredChats = useMemo(() => {
-		return chats.filter(
-			(chat) =>
-				chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				chat.message.toLowerCase().includes(searchQuery.toLowerCase()),
-		);
-	}, [searchQuery, chats]);
+	useEffect(() => {
+		getChatPartners("");
+	}, []);
+
+	const handleSearch = useCallback((value: string) => {
+		setSearchQuery(value);
+		if (debounceRef.current) clearTimeout(debounceRef.current);
+		debounceRef.current = setTimeout(() => {
+			getChatPartners(value);
+		}, DEBOUNCE_MS);
+	}, []);
 
 	const handleCloseSearch = () => {
 		setSearchQuery("");
+		getChatPartners("");
 	};
 
 	return (
@@ -52,7 +66,7 @@ const ConversationList = ({
 					<button
 						onClick={() => {
 							setIsSearchOpen(!isSearchOpen);
-							searchRef.current?.focus();
+							setTimeout(() => searchRef.current?.focus(), 50);
 						}}
 						className={`p-2 border rounded-full transition-all duration-500 ease-in-out cursor-pointer ${
 							isSearchOpen
@@ -74,7 +88,7 @@ const ConversationList = ({
 					<Input
 						ref={searchRef}
 						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
+						onChange={(e) => handleSearch(e.target.value)}
 						placeholder='Search chats...'
 						type='search'
 						className='rounded-full! border-primary/30! border w-full pr-10 text-xs!'
@@ -90,14 +104,17 @@ const ConversationList = ({
 			</div>
 
 			<div className='flex-1 overflow-y-auto space-y-2 px-2 pb-20 md:pb-4'>
-				{filteredChats.length > 0 ? (
-					filteredChats.map((chat) => {
+				{isChatsLoading ? (
+					<ChatSkeletonLoader count={6} />
+				) : chats.length > 0 ? (
+					chats.map((chat) => {
 						const isActive = chat.id === activeChatId;
 						return (
 							<div
 								key={chat.id}
 								onClick={() => {
 									onSelectChat(chat.id);
+									setSelectedUser(chat);
 								}}
 								className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all duration-150 ${
 									isActive
@@ -111,17 +128,14 @@ const ConversationList = ({
 									size='md'
 								/>
 								<div className='flex-1 min-w-0'>
-									<div className='flex items-center justify-between mb-0.5'>
-										<h3 className='text-sm font-medium text-white/90 truncate tracking-tight'>
-											{chat.name}
-										</h3>
-									</div>
+									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight'>
+										{chat.name}
+									</h3>
 									<p
 										className={`text-xs truncate font-light ${chat.typing ? "text-[#a286f7] font-normal" : "text-foreground/50"}`}>
 										{chat.message}
 									</p>
-									<p
-										className={`text-[10px] truncate font-light text-foreground/70 mt-1`}>
+									<p className='text-[10px] truncate font-light text-foreground/70 mt-1'>
 										{chat.lastUpdated}
 									</p>
 								</div>
@@ -139,9 +153,19 @@ const ConversationList = ({
 				) : (
 					<div className='flex flex-col h-full items-center justify-center text-center px-4 animate-fade-in'>
 						<EmptyState
-							icon={<FiSearch className='text-4xl' />}
-							title='No chats match your search.'
-							description='Try searching for something else.'
+							icon={
+								searchQuery ? (
+									<FiSearch className='text-4xl' />
+								) : (
+									<IoChatbubblesOutline className='text-5xl' />
+								)
+							}
+							title='No chats found.'
+							description={
+								searchQuery
+									? "Try searching for something else."
+									: "No chats yet."
+							}
 						/>
 					</div>
 				)}

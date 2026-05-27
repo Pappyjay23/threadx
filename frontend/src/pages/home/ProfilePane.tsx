@@ -1,7 +1,8 @@
 import PresenceAvatar from "@/components/chat/PresenceAvatar";
+import { axiosInstance } from "@/config/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 import { formatDate } from "@/utils/helpers";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
 	FiArrowLeft,
 	FiCamera,
@@ -12,6 +13,7 @@ import {
 import { LuUser } from "react-icons/lu";
 import { MdCardMembership } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface ProfilePaneProps {
 	onBack?: () => void;
@@ -19,7 +21,8 @@ interface ProfilePaneProps {
 
 const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 	const navigate = useNavigate();
-	const { logout, user } = useAuthStore();
+	const { logout, user, updateProfile } = useAuthStore();
+	const [selectedImg, setSelectedImg] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const fullName = user
@@ -29,14 +32,49 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 	const username = user ? `@${user.email.split("@")[0]}` : "@guest";
 	const dateJoined = formatDate(new Date(user?.createdAt ?? ""));
 
-	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (!file) return;
-		if (!file.type.startsWith("image/")) return;
-		if (file.size > 5 * 1024 * 1024) return;
 
-		// TODO: upload profile image
-		console.log("Selected file:", file.name);
+		console.log(file);
+
+		// Validate size (e.g. 5MB max)
+		if (file.size > 5 * 1024 * 1024) {
+			toast.error("Image must be less than 5MB");
+			return;
+		}
+
+		// Validate type
+		if (!file.type.startsWith("image/")) {
+			toast.error("File must be an image");
+			return;
+		}
+
+		setSelectedImg(URL.createObjectURL(file));
+
+		try {
+			const { data } = await axiosInstance.get(
+				"/auth/upload-profile-signature",
+			);
+			const { timestamp, signature, cloudName, apiKey, folder } = data;
+
+			const formData = new FormData();
+			formData.append("file", file);
+			formData.append("timestamp", timestamp);
+			formData.append("signature", signature);
+			formData.append("api_key", apiKey);
+			formData.append("folder", folder);
+
+			const cloudinaryRes = await fetch(
+				`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+				{ method: "POST", body: formData },
+			);
+			const { secure_url } = await cloudinaryRes.json();
+
+			await updateProfile(secure_url);
+		} catch {
+			setSelectedImg(user?.picture ?? null); // Revert with null coalescing
+		}
 	};
 
 	const profileDetails = [
@@ -80,20 +118,20 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 						<PresenceAvatar
 							isOnline={true}
 							size='lg'
-							src={user?.picture}
+							src={selectedImg || user?.picture}
 							name={fullName}
 						/>
 
 						<input
 							type='file'
 							ref={fileInputRef}
-							onChange={handleFileChange}
-							accept='image/png,image/jpeg,image/webp'
+							onChange={handleImageUpload}
+							accept='image/*'
 							className='hidden'
 						/>
 						<button
 							onClick={() => fileInputRef.current?.click()}
-							className='absolute inset-0 rounded-full flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer'
+							className='absolute z-7 h-16 w-16 inset-0 rounded-full flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer'
 							aria-label='Change profile photo'>
 							<FiCamera className='h-5 w-5 text-white/90' />
 							<span className='text-[9px] text-white/70 mt-1 font-medium uppercase tracking-wider'>

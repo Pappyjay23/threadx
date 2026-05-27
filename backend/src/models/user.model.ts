@@ -12,6 +12,8 @@ export interface IUser {
 	password?: string;
 	picture?: string;
 	authProvider: AuthProvider;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 interface IUserModel extends Model<IUser> {

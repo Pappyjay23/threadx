@@ -5,11 +5,12 @@ import express, {
 	type Request,
 	type Response,
 } from "express";
-import { originValidator } from "./middlewares/origin.middleware.js";
-import authRouter from "./routes/auth.routes.js";
-import userRouter from "./routes/user.routes.js";
 import { connectDB } from "./config/db.config.js";
 import { ENV } from "./config/env.config.js";
+import { originValidator } from "./middlewares/origin.middleware.js";
+import authRoutes from "./routes/auth.routes.js";
+import messageRoutes from "./routes/message.routes.js";
+import userRoutes from "./routes/user.routes.js";
 
 const app = express();
 const PORT = ENV.PORT || 5001;
@@ -51,8 +52,9 @@ app.get("/health", (_, res) => {
 	res.json({ status: "ok", message: "ThreadX API is running" });
 });
 
-app.use("/api/auth", authRouter);
-app.use("/api/user", userRouter);
+app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/messages", messageRoutes);
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 	if (err.message === "Not allowed by CORS") {

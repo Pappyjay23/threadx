@@ -38,7 +38,7 @@ const DashboardPage = () => {
 	};
 
 	return (
-		<div className='flex flex-col lg:flex-row h-svh max-h-dvh max-w-300 mx-auto bg-background text-foreground select-none antialiased overflow-hidden'>
+		<div className='flex flex-col lg:flex-row h-svh max-h-dvh max-w-300 mx-auto bg-background text-foreground antialiased overflow-hidden'>
 			<FloatingSidebar
 				activeTab={activeTab}
 				setActiveTab={handleNavTabChange}

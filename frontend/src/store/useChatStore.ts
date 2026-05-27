@@ -1,122 +1,256 @@
+import { messageApi } from "@/api/message";
+import type { ErrorResponse } from "@/types/auth";
+import type { Chat, Contact, Message } from "@/types/chat";
+import { toast } from "sonner";
 import { create } from "zustand";
-
-export type Contact = {
-	id: string;
-	name: string;
-	email: string;
-	image: string;
-	username: string;
-	isOnline: boolean;
-};
-
-export interface Chat extends Contact {
-	username: string;
-	message: string;
-	unread: number;
-	typing: boolean;
-	isPinned: boolean;
-	lastUpdated: string;
-}
+import { useAuthStore } from "./useAuthStore";
+import { axiosInstance } from "@/config/axios";
 
 type ChatState = {
 	chats: Chat[];
+	setChats: (chats: Chat[]) => void;
 	contacts: Contact[];
+	contactsPage: number;
+	contactsHasMore: boolean;
+	isLoadingMoreContacts: boolean;
 	activeChatId?: string;
-	isSoundEnabled: boolean;
 	setActiveChatId: (id?: string) => void;
-	getActiveChat: () => Chat | undefined;
+	messages: Message[];
+	messagesHasMore: boolean;
+	isLoadingMoreMessages: boolean;
+	isContactsLoading: boolean;
+	isChatsLoading: boolean;
+	isMessagesLoading: boolean;
+	isSoundEnabled: boolean;
 	toggleSound: () => void;
+	selectedUser: Contact | null;
+	setSelectedUser: (selectedUser: Contact | null) => void;
+	getContacts: (page?: number, search?: string) => Promise<void>;
+	loadMoreContacts: (search?: string) => Promise<void>;
+	getChatPartners: (search?: string) => Promise<void>;
+	getMessagesByUserId: (id: string) => Promise<void>;
+	loadMoreMessages: (id: string) => Promise<void>;
+	sendMessage: (
+		messageData: { text?: string; image?: string },
+		imageFile?: File | null,
+		imagePreview?: string | null,
+	) => Promise<void>;
+	deleteMessage: (messageId: string) => Promise<void>;
 };
 
-const mockContacts = [
-	{
-		id: "1",
-		name: "Ann Schleifer",
-		email: "annschleifer@example.com",
-		image:
-			"https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		username: "annschleifer",
-		isOnline: true,
-	},
-	{
-		id: "2",
-		name: "Hussein Saddam",
-		email: "husseinsaddam@example.com",
-		image: "",
-		username: "husseinsaddam",
-		isOnline: true,
-	},
-	{
-		id: "3",
-		name: "Vladimir Basuki",
-		email: "vladimirbasuki@example.com",
-		image: "",
-		username: "vladimirbasuki",
-		isOnline: false,
-	},
-];
-
-const mockChats = [
-	{
-		id: "1",
-		name: "Ann Schleifer",
-		email: "annschleifer@example.com",
-		username: "annschleifer",
-		image:
-			"https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-		message: "Hey! Did you check out that new...",
-		unread: 0,
-		isOnline: true,
-		typing: false,
-		isPinned: true,
-		lastUpdated: "10:00 AM",
-	},
-	{
-		id: "2",
-		name: "Hussein Saddam",
-		email: "husseinsaddam@example.com",
-		username: "husseinsaddam",
-		image: "",
-		message: "Typing...",
-		unread: 3,
-		isOnline: true,
-		typing: true,
-		isPinned: true,
-		lastUpdated: "9:30 AM",
-	},
-	{
-		id: "3",
-		name: "Vladimir Basuki",
-		email: "vladimirbasuki@example.com",
-		username: "vladimirbasuki",
-		image: "",
-		message: "Nice! I have been wanting to...",
-		unread: 0,
-		isOnline: false,
-		typing: false,
-		isPinned: false,
-		lastUpdated: "9:00 AM",
-	},
-];
-
 const useChatStore = create<ChatState>((set, get) => ({
-	chats: mockChats,
-	contacts: mockContacts,
+	chats: [],
+	setChats: (chats) => set({ chats }),
+	contacts: [],
+	contactsPage: 1,
+	contactsHasMore: false,
+	isLoadingMoreContacts: false,
+	messages: [],
+	messagesHasMore: false,
+	isLoadingMoreMessages: false,
+	selectedUser: null,
+	isContactsLoading: false,
+	isChatsLoading: false,
+	isMessagesLoading: false,
 	isSoundEnabled: localStorage.getItem("isSoundEnabled") === "true",
 	toggleSound: () => {
-		localStorage.setItem("isSoundEnabled", String(!get().isSoundEnabled));
-		set((state) => ({ isSoundEnabled: !state.isSoundEnabled }));
+		const next = !get().isSoundEnabled;
+		localStorage.setItem("isSoundEnabled", String(next));
+		set({ isSoundEnabled: next });
 	},
 	activeChatId: undefined,
-	setActiveChatId: (id: string | undefined) => set({ activeChatId: id }),
-	getActiveChat: () => {
-		const { chats, activeChatId } = get();
+	setActiveChatId: (id) => set({ activeChatId: id }),
+	setSelectedUser: (selectedUser) => set({ selectedUser }),
 
-		if (!activeChatId) {
-			return undefined;
+	getContacts: async (page = 1, search = "") => {
+		set({ isContactsLoading: true });
+		try {
+			const { contacts, pagination } = await messageApi.getContacts(
+				page,
+				search,
+			);
+			set({
+				contacts,
+				contactsPage: page,
+				contactsHasMore: pagination.hasMore,
+			});
+		} catch (error) {
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to fetch contacts",
+			);
+		} finally {
+			set({ isContactsLoading: false });
 		}
+	},
 
-		chats.find((c) => c.id === activeChatId);
+	loadMoreContacts: async (search = "") => {
+		const { contactsPage, contactsHasMore, isLoadingMoreContacts } = get();
+		if (!contactsHasMore || isLoadingMoreContacts) return;
+
+		set({ isLoadingMoreContacts: true });
+		try {
+			const nextPage = contactsPage + 1;
+			const { contacts, pagination } = await messageApi.getContacts(
+				nextPage,
+				search,
+			);
+			set((state) => ({
+				contacts: [...state.contacts, ...contacts],
+				contactsPage: nextPage,
+				contactsHasMore: pagination.hasMore,
+			}));
+		} catch (error) {
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to load more contacts",
+			);
+		} finally {
+			set({ isLoadingMoreContacts: false });
+		}
+	},
+
+	getChatPartners: async (search = "") => {
+		set({ isChatsLoading: true });
+		try {
+			const chats = await messageApi.getChatPartners(search);
+			set({ chats });
+		} catch (error) {
+			toast.error((error as ErrorResponse)?.message ?? "Failed to fetch chats");
+		} finally {
+			set({ isChatsLoading: false });
+		}
+	},
+
+	getMessagesByUserId: async (id) => {
+		set({ isMessagesLoading: true });
+		try {
+			const { messages, hasMore } = await messageApi.getMessagesByUserId(id);
+			set({ messages, messagesHasMore: hasMore });
+		} catch (error) {
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to fetch messages",
+			);
+		} finally {
+			set({ isMessagesLoading: false });
+		}
+	},
+
+	loadMoreMessages: async (id) => {
+		const { messages, messagesHasMore, isLoadingMoreMessages } = get();
+		if (!messagesHasMore || isLoadingMoreMessages) return;
+
+		set({ isLoadingMoreMessages: true });
+		try {
+			const oldestId = messages[0]?._id;
+			const { messages: older, hasMore } = await messageApi.getMessagesByUserId(
+				id,
+				oldestId,
+			);
+			set((state) => ({
+				messages: [...older, ...state.messages],
+				messagesHasMore: hasMore,
+			}));
+		} catch (error) {
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to load more messages",
+			);
+		} finally {
+			set({ isLoadingMoreMessages: false });
+		}
+	},
+
+	sendMessage: async (messageData, imageFile, imagePreview) => {
+		const { selectedUser, messages } = get();
+		const { user } = useAuthStore.getState();
+		if (!selectedUser || !user) return;
+
+		const tempId = `temp-${Date.now()}`;
+		const now = new Date().toISOString();
+
+		const optimisticMessage: Message = {
+			_id: tempId,
+			senderId: user._id,
+			receiverId: selectedUser.id,
+			text: messageData.text,
+			image: imagePreview ?? undefined,
+			createdAt: now,
+			updatedAt: now,
+		};
+
+		set({ messages: [...messages, optimisticMessage] });
+
+		try {
+			let imageUrl: string | null = null;
+
+			if (imageFile) {
+				const { data } = await axiosInstance.get(
+					"/messages/upload-message-signature",
+				);
+				const { timestamp, signature, cloudName, apiKey, folder } = data;
+
+				const formData = new FormData();
+				formData.append("file", imageFile);
+				formData.append("timestamp", String(timestamp));
+				formData.append("signature", signature);
+				formData.append("api_key", apiKey);
+				formData.append("folder", folder);
+
+				const cloudinaryRes = await fetch(
+					`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+					{ method: "POST", body: formData },
+				);
+
+				if (!cloudinaryRes.ok) throw new Error("Failed to upload image");
+
+				const cloudinaryData = await cloudinaryRes.json();
+				imageUrl = cloudinaryData.secure_url;
+
+				await new Promise((resolve) => {
+					const img = new Image();
+					img.onload = resolve;
+					img.onerror = resolve;
+					img.src = imageUrl!;
+				});
+			}
+
+			const sentMessage = await messageApi.sendMessage(selectedUser.id, {
+				...messageData,
+				image: imageUrl ?? undefined,
+			});
+
+			if (imagePreview) URL.revokeObjectURL(imagePreview);
+
+			set((state) => ({
+				messages: state.messages.map((m) =>
+					m._id === tempId ? sentMessage : m,
+				),
+			}));
+		} catch (error) {
+			set((state) => ({
+				messages: state.messages.filter((m) => m._id !== tempId),
+			}));
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to send message",
+			);
+		}
+	},
+
+	deleteMessage: async (messageId) => {
+		const snapshot = get().messages;
+
+		// Optimistically remove immediately
+		set((state) => ({
+			messages: state.messages.filter((m) => m._id !== messageId),
+		}));
+
+		try {
+			await messageApi.deleteMessage(messageId);
+		} catch (error) {
+			// Rollback on failure
+			set({ messages: snapshot });
+			toast.error(
+				(error as ErrorResponse)?.message ?? "Failed to delete message",
+			);
+		}
 	},
 }));
 
