@@ -44,6 +44,9 @@ app.use(cors(corsOptions));
 
 const io = new Server(server, {
 	cors: corsOptions,
+	transports: ["websocket", "polling"],
+	pingTimeout: 60000,
+	pingInterval: 25000,
 });
 
 // Apply authentication middleware to all socket connections

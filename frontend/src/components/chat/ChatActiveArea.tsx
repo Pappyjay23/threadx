@@ -331,11 +331,11 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 					</div>
 				</div>
 
-				<div className='flex items-center gap-2'>
+				<div className='flex items-center gap-1 md:gap-2'>
 					<div
 						className={`flex items-center gap-2 transition-all duration-300 ease-in-out ${
 							isSearchOpen
-								? "w-48 md:w-64"
+								? "w-25 md:w-64"
 								: "w-0 overflow-hidden opacity-0 pointer-events-none"
 						}`}>
 						<div className='relative flex items-center w-full'>
@@ -345,7 +345,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 								value={messageSearch}
 								onChange={(e) => setMessageSearch(e.target.value)}
 								placeholder='Search messages...'
-								className='w-full bg-white/5 border border-primary/20 rounded-full py-1.5 pl-8 pr-8 text-xs text-white/80 placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 transition-colors'
+								className='w-full bg-white/5 border border-primary/20 rounded-full py-1.5 pl-8 pr-8 text-[10px] md:text-xs text-white/80 placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 transition-colors'
 							/>
 							{messageSearch && (
 								<button
@@ -367,13 +367,13 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 								? "text-[#a286f7] border-[#7556d3]/50 bg-[#7556d3]/10"
 								: "text-foreground border-transparent hover:border-primary/50 hover:bg-white/5"
 						}`}>
-						<FiSearch className='h-4 w-4' />
+						<FiSearch className='text-xs md:text-sm' />
 					</button>
 
 					<button
 						onClick={onCloseChat}
 						className='p-2 text-foreground border border-transparent hover:border-primary/50 rounded-full hover:bg-white/5 transition-all duration-500 ease-in-out cursor-pointer shrink-0'>
-						<FiX className='h-4 w-4' />
+						<FiX className='text-xs md:text-sm' />
 					</button>
 				</div>
 			</div>

@@ -15,18 +15,24 @@ export const socketAuthMiddleware = async (
 	next: NextFunction,
 ) => {
 	try {
-		const rawCookies = socket.handshake.headers.cookie;
+		let token: string | undefined;
 
-		if (!rawCookies) {
-			console.log("Socket connection rejected: No cookies found");
-			return next(new Error("Unauthorized - No Cookies Provided"));
+		// Try to get token from cookies first
+		const rawCookies = socket.handshake.headers.cookie;
+		if (rawCookies) {
+			const parsedCookies = cookie.parse(rawCookies);
+			token = parsedCookies.accessToken;
 		}
 
-		const parsedCookies = cookie.parse(rawCookies);
+		// Fallback: try auth token from handshake (for tunneled connections)
+		if (!token && socket.handshake.auth?.token) {
+			token = socket.handshake.auth.token;
+		}
 
-		const token = parsedCookies.accessToken;
 		if (!token) {
-			console.log("Socket connection rejected: Token not found");
+			console.log(
+				"Socket connection rejected: No token found in cookies or auth",
+			);
 			return next(new Error("Unauthorized - No Token Provided"));
 		}
 
@@ -49,7 +55,7 @@ export const socketAuthMiddleware = async (
 		);
 		next();
 	} catch (error: unknown) {
-		console.log("Error in socket authenticaiton:", error);
+		console.log("Error in socket authentication:", error);
 		next(new Error("Unauthorized - Authentication failed"));
 	}
 };
