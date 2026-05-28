@@ -6,7 +6,6 @@ export type Contact = {
 	email: string;
 	image: string;
 	username: string;
-	isOnline: boolean;
 	dateJoined: string;
 };
 

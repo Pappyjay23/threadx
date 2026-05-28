@@ -1,5 +1,6 @@
 import useSound from "@/hooks/useSound";
 import useChatStore from "@/store/useChatStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { isMobile } from "@/utils/helpers";
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import React, { useEffect, useRef, useState } from "react";
@@ -53,7 +54,7 @@ const previewComponents: Components = {
 };
 
 const ChatInput = ({ onSendMessage }: ChatInputProps) => {
-	const { activeChatId, isSoundEnabled } = useChatStore();
+	const { activeChatId, isSoundEnabled, selectedUser } = useChatStore();
 	const { playRandomKeyStrokeSound, playSendMessageSound } = useSound();
 
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -74,6 +75,8 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		start: number;
 		end: number;
 	} | null>(null);
+	const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [isLocalTyping, setIsLocalTyping] = useState(false);
 
 	useEffect(() => {
 		if (!text) setIsPreviewMode(false);
@@ -98,6 +101,15 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 
 	const sendMessage = () => {
 		if (!text.trim() && !imageFile) return;
+		
+		// Stop typing indicator immediately
+		const socket = useAuthStore.getState().socket;
+		if (socket && selectedUser && isLocalTyping) {
+			socket.emit("typing:stop", { receiverId: selectedUser.id });
+			setIsLocalTyping(false);
+			if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+		}
+
 		onSendMessage(text, imageFile, imagePreview);
 		setText("");
 		setImageFile(null);
@@ -219,6 +231,23 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		}
 	}, [isPreviewMode]);
 
+	const handleTyping = () => {
+		const socket = useAuthStore.getState().socket;
+		if (!socket || !selectedUser) return;
+
+		if (!isLocalTyping) {
+			setIsLocalTyping(true);
+			socket.emit("typing:start", { receiverId: selectedUser.id });
+		}
+
+		if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+		typingTimeoutRef.current = setTimeout(() => {
+			socket.emit("typing:stop", { receiverId: selectedUser.id });
+			setIsLocalTyping(false);
+		}, 3000);
+	};
+
 	const hasMarkdown = /\*\*|__|`|\*|_/.test(text);
 
 	return (
@@ -293,6 +322,7 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 							className='pr-4'
 							onChange={(e) => {
 								setText(e.target.value);
+								handleTyping();
 								if (isSoundEnabled) playRandomKeyStrokeSound();
 							}}
 							onKeyDown={handleKeyDown}

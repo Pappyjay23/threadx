@@ -1,15 +1,15 @@
 import express from "express";
 import { apiAj, authAj } from "../config/arcjet.config.js";
 import {
+	forgotPassword,
 	googleAuth,
 	login,
 	logout,
 	refresh,
-	signup,
-	forgotPassword,
 	resetPassword,
-	uploadProfileSignature,
+	signup,
 	updateProfile,
+	uploadProfileSignature,
 } from "../controllers/auth.controller.js";
 import { arcjetProtection } from "../middlewares/arcjet.middleware.js";
 import { protectAuth } from "../middlewares/auth.middleware.js";

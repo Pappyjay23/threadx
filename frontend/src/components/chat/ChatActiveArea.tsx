@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import useChatStore from "@/store/useChatStore";
 import { useEffect, useRef, useState } from "react";
-import { FiMessageSquare, FiSearch, FiX } from "react-icons/fi";
+import { FiArrowDown, FiMessageSquare, FiSearch, FiX } from "react-icons/fi";
 import { IoCloseOutline } from "react-icons/io5";
 import EmptyState from "../shared/EmptyState";
 import ChatBubble from "./ChatBubble";
@@ -26,11 +26,22 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		messagesHasMore,
 		isMessagesLoading,
 		isLoadingMoreMessages,
+		lastReadAt,
 		getMessagesByUserId,
 		loadMoreMessages,
 		sendMessage,
+		subscribeToMessages,
+		unsubscribeFromMessages,
+		markAsRead,
+		chats,
 	} = useChatStore();
-	const { user } = useAuthStore();
+	const { user, onlineUsers } = useAuthStore();
+
+	const isOnline =
+		selectedUser && onlineUsers.includes(selectedUser.id.toString());
+
+	const activeChat = chats.find((c) => c.id === chatId);
+	const isTyping = activeChat?.typing;
 
 	const [showProfile, setShowProfile] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -39,23 +50,40 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		top: number;
 		left: number;
 	} | null>(null);
+	const [showScrollButton, setShowScrollButton] = useState(false);
+	const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const messageEndRef = useRef<HTMLDivElement>(null);
 	const topSentinelRef = useRef<HTMLDivElement>(null);
 	const isInitialLoad = useRef(false);
 	const searchInputRef = useRef<HTMLInputElement>(null);
+	const unreadDividerIndex = useRef<number | null>(null);
+
+	// Calculate unread divider index (first unread message FROM THE OTHER PERSON)
+	useEffect(() => {
+		if (!lastReadAt || messages.length === 0) {
+			unreadDividerIndex.current = null;
+			return;
+		}
+
+		const firstUnreadIndex = messages.findIndex(
+			(msg) =>
+				new Date(msg.createdAt) > new Date(lastReadAt) &&
+				msg.senderId !== user?._id,
+		);
+		unreadDividerIndex.current =
+			firstUnreadIndex >= 0 ? firstUnreadIndex : null;
+	}, [messages, lastReadAt, user?._id]);
 
 	const handleWorkspaceContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
 		const target = e.target as HTMLElement;
 		const bubbleElement = target.closest("[data-bubble='true']");
 
-		// If the user right-clicked a bubble, let the bubble or browser handle it
 		if (bubbleElement) {
 			return;
 		}
 
-		// Explicitly stop the browser menu from showing up
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -85,36 +113,135 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 	useEffect(() => {
 		if (chatId) {
 			isInitialLoad.current = true;
+			setHasInitialScrolled(false);
 			getMessagesByUserId(chatId);
+			subscribeToMessages();
 			setShowProfile(false);
 			setIsSearchOpen(false);
 			setMessageSearch("");
+			setShowScrollButton(false);
 		}
-	}, [chatId, getMessagesByUserId]);
 
-	// Scroll to bottom logic
+		return () => {
+			unsubscribeFromMessages();
+		};
+	}, [
+		chatId,
+		getMessagesByUserId,
+		subscribeToMessages,
+		unsubscribeFromMessages,
+	]);
+
+	// Mark as read AFTER messages are loaded and scrolled
+	useEffect(() => {
+		if (
+			chatId &&
+			!isMessagesLoading &&
+			messages.length > 0 &&
+			hasInitialScrolled
+		) {
+			const timer = setTimeout(() => {
+				markAsRead(chatId);
+			}, 500);
+			return () => clearTimeout(timer);
+		}
+	}, [
+		chatId,
+		isMessagesLoading,
+		messages.length,
+		hasInitialScrolled,
+		markAsRead,
+	]);
+
+	// Detect scroll position for the "scroll to bottom" button
+	useEffect(() => {
+		const container = scrollContainerRef.current;
+		if (!container) return;
+
+		const handleScroll = () => {
+			const distanceFromBottom =
+				container.scrollHeight - container.scrollTop - container.clientHeight;
+			setShowScrollButton(distanceFromBottom > 200);
+		};
+
+		handleScroll();
+
+		container.addEventListener("scroll", handleScroll, { passive: true });
+		return () => container.removeEventListener("scroll", handleScroll);
+	}, [messages]);
+
+	const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+		messageEndRef.current?.scrollIntoView({ behavior });
+	};
+
+	// Scroll logic
 	useEffect(() => {
 		if (!messageEndRef.current || messages.length === 0) return;
-
-		if (isInitialLoad.current) {
-			isInitialLoad.current = false;
-			requestAnimationFrame(() => {
-				requestAnimationFrame(() => {
-					messageEndRef.current?.scrollIntoView({ behavior: "instant" });
-				});
-			});
-			return;
-		}
 
 		const container = scrollContainerRef.current;
 		if (!container) return;
 
-		const distanceFromBottom =
-			container.scrollHeight - container.scrollTop - container.clientHeight;
+		// If this is a socket update (not initial load), handle it separately
+		if (hasInitialScrolled) {
+			const distanceFromBottom =
+				container.scrollHeight - container.scrollTop - container.clientHeight;
 
-		if (distanceFromBottom < 100) {
-			messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+			if (distanceFromBottom < 100) {
+				scrollToBottom("smooth");
+			}
+			return;
 		}
+
+		// Initial load — wait for DOM to render
+		isInitialLoad.current = false;
+
+		setTimeout(() => {
+			if (!container) return;
+
+			if (lastReadAt) {
+				let lastReadMessageIndex = -1;
+
+				for (let i = 0; i < messages.length; i++) {
+					const msg = messages[i];
+					if (
+						new Date(msg.createdAt) > new Date(lastReadAt) &&
+						msg.senderId !== user?._id
+					) {
+						lastReadMessageIndex = i - 1;
+						break;
+					}
+				}
+
+				if (lastReadMessageIndex >= 0) {
+					const messageElements = container.querySelectorAll(
+						'[data-bubble="true"]',
+					);
+					const targetElement = messageElements[lastReadMessageIndex];
+					if (targetElement) {
+						targetElement.scrollIntoView({
+							behavior: "instant",
+							block: "start",
+						});
+						setHasInitialScrolled(true);
+						return;
+					}
+				} else if (lastReadMessageIndex === -1) {
+					const hasUnreadFromOther = messages.some(
+						(msg) =>
+							new Date(msg.createdAt) > new Date(lastReadAt) &&
+							msg.senderId !== user?._id,
+					);
+					if (hasUnreadFromOther) {
+						container.scrollTop = 0;
+						setHasInitialScrolled(true);
+						return;
+					}
+				}
+			}
+
+			scrollToBottom("instant");
+			setHasInitialScrolled(true);
+		}, 100);
 	}, [messages]);
 
 	// Load older messages when top sentinel is visible
@@ -182,7 +309,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 					className='flex items-center gap-3 cursor-pointer group shrink-0'
 					onClick={() => setShowProfile(true)}>
 					<PresenceAvatar
-						isOnline={selectedUser?.isOnline ?? false}
+						isOnline={isOnline ?? false}
 						size='md'
 						src={selectedUser?.image}
 						name={selectedUser?.name}
@@ -193,9 +320,13 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 						</p>
 						<span
 							className={`text-[10px] ${
-								selectedUser?.isOnline ? "text-[#10b981]" : "text-white/40"
+								isTyping
+									? "text-primary italic animate-pulse"
+									: isOnline
+										? "text-[#10b981]"
+										: "text-white/40"
 							} font-light tracking-wide`}>
-							{selectedUser?.isOnline ? "Online" : "Offline"}
+							{isTyping ? "Typing..." : isOnline ? "Online" : "Offline"}
 						</span>
 					</div>
 				</div>
@@ -251,7 +382,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 			<div
 				ref={scrollContainerRef}
 				onContextMenu={handleWorkspaceContextMenu}
-				className='flex-1 overflow-y-auto p-4 space-y-1'>
+				className='flex-1 overflow-y-auto p-4 space-y-1 relative'>
 				<div ref={topSentinelRef} className='py-1'>
 					{isLoadingMoreMessages && (
 						<div className='flex justify-center py-2'>
@@ -276,10 +407,24 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 							msgDate &&
 							(!prevDate || msgDate.toDateString() !== prevDate.toDateString());
 
+						const showUnreadDivider =
+							!messageSearch.trim() &&
+							unreadDividerIndex.current !== null &&
+							index === unreadDividerIndex.current;
+
 						return (
 							<div key={msg?._id}>
 								{showDateSeparator && (
 									<DateSeparator label={getDateLabel(msgDate)} />
+								)}
+								{showUnreadDivider && (
+									<div className='flex items-center gap-3 my-4'>
+										<div className='flex-1 h-px bg-primary/30' />
+										<span className='text-[10px] font-semibold text-primary uppercase tracking-wider whitespace-nowrap'>
+											New messages
+										</span>
+										<div className='flex-1 h-px bg-primary/30' />
+									</div>
 								)}
 								<ChatBubble
 									messageId={msg._id}
@@ -318,8 +463,49 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 						/>
 					</div>
 				)}
-				{filteredMessages.length > 0 && <div ref={messageEndRef} />}
+
+				{isTyping && (
+					<div className={`flex w-full justify-start mb-3 px-2`}>
+						<div className='max-w-[85%] md:max-w-[70%] group relative flex items-start gap-2 flex-row'>
+							<div className='flex-1'>
+								<p className='text-[10px] font-light text-white/60 mb-1 text-left ml-1'>
+									{selectedUser?.name ?? "User"}
+								</p>
+
+								<div className='w-17 shadow-lg text-white/80 rounded-t-lg rounded-br-lg bg-secondary border border-primary/10'>
+									<div className='py-2 px-4 flex items-center justify-center gap-1.5'>
+										<span
+											className='w-1.5 h-1.5 bg-primary/60 rounded-full animate-typing-bounce'
+											style={{ animationDelay: "0ms" }}
+										/>
+										<span
+											className='w-1.5 h-1.5 bg-primary/60 rounded-full animate-typing-bounce'
+											style={{ animationDelay: "150ms" }}
+										/>
+										<span
+											className='w-1.5 h-1.5 bg-primary/60 rounded-full animate-typing-bounce'
+											style={{ animationDelay: "300ms" }}
+										/>
+									</div>
+								</div>
+							</div>
+
+							<div className='w-6 shrink-0' />
+						</div>
+					</div>
+				)}
+
+				<div ref={messageEndRef} />
 			</div>
+
+			{showScrollButton && (
+				<button
+					onClick={() => scrollToBottom()}
+					className='fixed bottom-24 right-[50%] translate-x-1/2 p-2 bg-primary/90 hover:bg-primary text-white rounded-full shadow-lg shadow-primary/20 transition-all duration-200 cursor-pointer z-50 animate-fade-in'
+					aria-label='Scroll to bottom'>
+					<FiArrowDown className='text-sm' />
+				</button>
+			)}
 
 			<ChatInput
 				onSendMessage={(text, imageFile, imagePreview) =>
@@ -336,7 +522,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 								id: selectedUser.id,
 								name: selectedUser.name,
 								image: selectedUser.image,
-								isOnline: selectedUser.isOnline,
+								isOnline: isOnline || false,
 								email: selectedUser.email,
 								username: selectedUser.username,
 								dateJoined: selectedUser.dateJoined,

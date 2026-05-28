@@ -15,9 +15,11 @@ interface FloatingSidebarProps {
 
 const FloatingSidebar = ({ activeTab, setActiveTab }: FloatingSidebarProps) => {
 	const navigate = useNavigate();
-	const { logout, user } = useAuthStore();
+	const { logout, user, onlineUsers } = useAuthStore();
 	const { isSoundEnabled, toggleSound } = useChatStore();
 	const { playMouseClickSound } = useSound();
+	
+	const isOnline = user && onlineUsers.includes(user._id.toString());
 
 	const fullName = user
 		? `${user.firstName} ${user.lastName || ""}`.trim()
@@ -100,12 +102,24 @@ const FloatingSidebar = ({ activeTab, setActiveTab }: FloatingSidebarProps) => {
 									className='h-8 w-8 object-cover rounded-full'
 								/>
 								{/* Online indicator */}
-								<span className='absolute bottom-0 right-0 h-2 w-2 bg-green-500 rounded-full ring-1 ring-background/50' />
+								<span
+									className={`absolute bottom-0 right-0 h-2 w-2 ${
+										isOnline
+											? "bg-green-500 ring-background/50"
+											: "bg-muted ring-foreground/50"
+									} rounded-full ring-1 transition-all duration-300 ease-in-out`}
+								/>
 							</div>
 						) : (
 							<div className='relative h-8 w-8 rounded-full bg-linear-to-br from-[#7556d3]/30 to-[#a286f7]/10 border border-[#7556d3]/20 flex items-center justify-center font-bold text-xs text-white/90'>
 								{getInitials(fullName)}
-								<span className='absolute bottom-0 right-0 h-2 w-2 bg-green-500 rounded-full ring-1 ring-background/50' />
+								<span
+									className={`absolute bottom-0 right-0 h-2 w-2 ${
+										isOnline
+											? "bg-green-500 ring-background/50"
+											: "bg-muted ring-foreground/50"
+									} rounded-full ring-1 transition-all duration-300 ease-in-out`}
+								/>
 							</div>
 						)}
 						<span className='pointer-events-none absolute left-full top-1/2 hidden -translate-y-1/2 ml-3 rounded-full bg-[#0c0926]/95 px-3 py-1 text-[10px] tracking-wide font-semibold text-white/90 shadow-2xl opacity-0 transition-all duration-300 group-hover:opacity-100 lg:inline-flex uppercase'>

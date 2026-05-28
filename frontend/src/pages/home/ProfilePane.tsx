@@ -21,9 +21,11 @@ interface ProfilePaneProps {
 
 const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 	const navigate = useNavigate();
-	const { logout, user, updateProfile } = useAuthStore();
+	const { logout, user, updateProfile, onlineUsers } = useAuthStore();
 	const [selectedImg, setSelectedImg] = useState<string | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const isOnline = user && onlineUsers.includes(user._id.toString());
 
 	const fullName = user
 		? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
@@ -116,7 +118,7 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 					{/* Avatar with upload overlay */}
 					<div className='relative group'>
 						<PresenceAvatar
-							isOnline={true}
+							isOnline={isOnline ?? false}
 							size='lg'
 							src={selectedImg || user?.picture}
 							name={fullName}

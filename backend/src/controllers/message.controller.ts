@@ -3,12 +3,16 @@ import mongoose from "mongoose";
 import cloudinary from "../config/cloudinary.config.js";
 import { ENV } from "../config/env.config.js";
 import type { AuthRequest } from "../middlewares/auth.middleware.js";
+import Conversation from "../models/conversation.model.js";
+import type { IConversation } from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 import {
 	sendErrorResponse,
 	sendSuccessResponse,
 } from "../utils/response.utils.js";
+import { getReceiverSocketId, io } from "../config/socket.config.js";
+import { reconcileUnreadCount } from "../utils/conversation.utils.js";
 
 const CONTACTS_PAGE_LIMIT = 20;
 const MESSAGES_PAGE_LIMIT = 30;
@@ -51,7 +55,6 @@ export const getContacts = async (req: AuthRequest, res: Response) => {
 			email: user.email,
 			image: user.picture ?? "",
 			username: user.email.split("@")[0],
-			isOnline: false,
 			dateJoined: new Date(user.createdAt).toLocaleDateString("en-US", {
 				month: "long",
 				day: "numeric",
@@ -120,12 +123,34 @@ export const getChats = async (req: AuthRequest, res: Response) => {
 		const users = await User.find(userFilter).select("-password -__v");
 		const userMap = new Map(users.map((u) => [u._id.toString(), u]));
 
+		// Fetch logged in user to get pinnedChats
+		const currentUser = await User.findById(loggedInUserId).select("pinnedChats");
+		const pinnedChatIds = new Set(currentUser?.pinnedChats?.map(id => id.toString()) || []);
+
+		// Fetch Conversations for unread counts
+		const conversationDocs = await Conversation.find({
+			participants: userObjectId,
+		});
+		const unreadCountMap = new Map();
+		conversationDocs.forEach((doc: IConversation) => {
+			const otherParticipant = doc.participants.find(
+				(p) => p.toString() !== loggedInUserId,
+			);
+			if (otherParticipant) {
+				unreadCountMap.set(
+					otherParticipant.toString(),
+					doc.unreadCount?.get(loggedInUserId) ?? 0,
+				);
+			}
+		});
+
 		const chats = conversations
 			.filter((c) => userMap.has(c._id.toString()))
 			.map(({ _id, lastMessage, lastImage, lastUpdated }) => {
 				const user = userMap.get(_id.toString());
+				const partnerId = _id.toString();
 				return {
-					id: _id.toString(),
+					id: partnerId,
 					name: user
 						? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ""}`
 						: "Unknown",
@@ -139,16 +164,21 @@ export const getChats = async (req: AuthRequest, res: Response) => {
 								year: "numeric",
 							})
 						: "",
-					isOnline: false,
 					message: lastImage ? `📷 ${lastMessage}` : (lastMessage ?? ""),
-					unread: 0,
+					unread: unreadCountMap.get(partnerId) || 0,
 					typing: false,
-					isPinned: false,
+					isPinned: pinnedChatIds.has(partnerId),
 					lastUpdated: new Date(lastUpdated).toLocaleTimeString([], {
 						hour: "2-digit",
 						minute: "2-digit",
 					}),
+					lastUpdatedTimestamp: new Date(lastUpdated).getTime(),
 				};
+			})
+			.sort((a, b) => {
+				if (a.isPinned && !b.isPinned) return -1;
+				if (!a.isPinned && b.isPinned) return 1;
+				return b.lastUpdatedTimestamp - a.lastUpdatedTimestamp;
 			});
 
 		sendSuccessResponse(res, 200, "Chats fetched successfully", chats);
@@ -201,9 +231,16 @@ export const getMessagesByUserId = async (req: AuthRequest, res: Response) => {
 
 		messages.reverse();
 
+		const conversation = await Conversation.findOne({
+			participants: { $all: [loggedInUserId, userToChatId] },
+		});
+
+		const lastReadAt = conversation?.lastReadAt?.get(loggedInUserId) || null;
+
 		sendSuccessResponse(res, 200, "Messages fetched successfully", {
 			messages,
 			hasMore,
+			lastReadAt,
 		});
 	} catch (error) {
 		console.log("Error in getMessagesByUserId:", error);
@@ -260,10 +297,71 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
 			image,
 		});
 
+		// Update or create Conversation and increment unreadCount for receiver
+		const participants = [loggedInUserId as string, userToChatId as string]
+			.sort()
+			.map((id) => new mongoose.Types.ObjectId(id));
+		const conversation = await Conversation.findOneAndUpdate(
+			{ participants },
+			{
+				$set: { lastMessageAt: new Date() },
+				$inc: { [`unreadCount.${userToChatId}`]: 1 },
+			},
+			{ upsert: true, returnDocument: "after" },
+		);
+
+		const receiverSocketId = getReceiverSocketId(userToChatId);
+		if (receiverSocketId) {
+			io.to(receiverSocketId).emit("newMessage", message);
+			io.to(receiverSocketId).emit("unreadUpdate", {
+				senderId: loggedInUserId,
+				count: conversation?.unreadCount?.get(userToChatId) ?? 0,
+			});
+		}
+
 		sendSuccessResponse(res, 201, "Message sent successfully", message);
 	} catch (error) {
 		console.log("Error in sendMessage:", error);
 		sendErrorResponse(res, 500, "Error sending message");
+	}
+};
+
+export const markAsRead = async (req: AuthRequest, res: Response) => {
+	try {
+		const loggedInUserId = req.user?.id;
+		const rawPartnerId = req.params.id;
+		const partnerId =
+			typeof rawPartnerId === "string" ? rawPartnerId : rawPartnerId?.[0];
+
+		if (!loggedInUserId) return sendErrorResponse(res, 401, "Unauthorized");
+		if (!partnerId)
+			return sendErrorResponse(res, 400, "Partner id not provided");
+
+		const participants = [loggedInUserId as string, partnerId as string]
+			.sort()
+			.map((id) => new mongoose.Types.ObjectId(id));
+
+		await Conversation.findOneAndUpdate(
+			{ participants },
+			{
+				$set: {
+					[`lastReadAt.${loggedInUserId}`]: new Date(),
+					[`unreadCount.${loggedInUserId}`]: 0,
+				},
+			},
+			{ upsert: true },
+		);
+
+		// Notify partner that messages have been read (optional but requested in plan)
+		const partnerSocketId = getReceiverSocketId(partnerId);
+		if (partnerSocketId) {
+			io.to(partnerSocketId).emit("messagesRead", { readerId: loggedInUserId });
+		}
+
+		sendSuccessResponse(res, 200, "Messages marked as read");
+	} catch (error) {
+		console.log("Error in markAsRead:", error);
+		sendErrorResponse(res, 500, "Error marking messages as read");
 	}
 };
 
@@ -294,9 +392,65 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
 
 		await Message.findByIdAndDelete(messageId);
 
+		// Reconcile unread counts for both users after deletion
+		if (message) {
+			await Promise.all([
+				reconcileUnreadCount(
+					message.senderId.toString(),
+					message.receiverId.toString(),
+				),
+				reconcileUnreadCount(
+					message.receiverId.toString(),
+					message.senderId.toString(),
+				),
+			]);
+		}
+
 		sendSuccessResponse(res, 200, "Message deleted successfully", null);
 	} catch (error) {
 		console.log("Error in deleteMessage:", error);
 		sendErrorResponse(res, 500, "Error deleting message");
+	}
+};
+
+export const pinChat = async (req: AuthRequest, res: Response) => {
+	try {
+		const loggedInUserId = req.user?.id;
+		const rawPartnerId = req.params.id;
+		const partnerId =
+			typeof rawPartnerId === "string" ? rawPartnerId : rawPartnerId?.[0];
+
+		if (!loggedInUserId) return sendErrorResponse(res, 401, "Unauthorized");
+		if (!partnerId) return sendErrorResponse(res, 400, "Partner id not provided");
+
+		const user = await User.findById(loggedInUserId);
+		if (!user) return sendErrorResponse(res, 404, "User not found");
+
+		const isPinned = user.pinnedChats.some(
+			(id) => id.toString() === partnerId,
+		);
+
+		let updatedUser;
+		if (isPinned) {
+			updatedUser = await User.findByIdAndUpdate(
+				loggedInUserId,
+				{ $pull: { pinnedChats: new mongoose.Types.ObjectId(partnerId) } },
+				{ new: true },
+			);
+		} else {
+			updatedUser = await User.findByIdAndUpdate(
+				loggedInUserId,
+				{ $addToSet: { pinnedChats: new mongoose.Types.ObjectId(partnerId) } },
+				{ new: true },
+			);
+		}
+
+		sendSuccessResponse(res, 200, isPinned ? "Chat unpinned" : "Chat pinned", {
+			pinnedChats: updatedUser?.pinnedChats || [],
+			isPinned: !isPinned,
+		});
+	} catch (error) {
+		console.log("Error in pinChat:", error);
+		sendErrorResponse(res, 500, "Error pinning chat");
 	}
 };

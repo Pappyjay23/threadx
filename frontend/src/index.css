@@ -87,10 +87,27 @@ body {
 	}
 }
 
-.epr-emoji-category-label{
+.epr-emoji-category-label {
 	font-size: 13px !important;
 	font-family: var(--font-google-sans-flex) !important;
 	font-weight: 500 !important;
 	letter-spacing: -0.5px !important;
 	color: var(--foreground) !important;
+}
+
+@keyframes typingBounce {
+	0%,
+	60%,
+	100% {
+		transform: translateY(0);
+		opacity: 0.4;
+	}
+	30% {
+		transform: translateY(-4px);
+		opacity: 1;
+	}
+}
+
+.animate-typing-bounce {
+	animation: typingBounce 1.4s ease-in-out infinite;
 }

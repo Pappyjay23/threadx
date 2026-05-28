@@ -16,6 +16,7 @@ type ChatState = {
 	activeChatId?: string;
 	setActiveChatId: (id?: string) => void;
 	messages: Message[];
+	lastReadAt: string | null;
 	messagesHasMore: boolean;
 	isLoadingMoreMessages: boolean;
 	isContactsLoading: boolean;
@@ -36,6 +37,13 @@ type ChatState = {
 		imagePreview?: string | null,
 	) => Promise<void>;
 	deleteMessage: (messageId: string) => Promise<void>;
+	markAsRead: (userId: string) => Promise<void>;
+	togglePin: (chatId: string) => Promise<void>;
+	subscribeToMessages: () => void;
+	unsubscribeFromMessages: () => void;
+	subscribeToUpdates: () => void;
+	unsubscribeFromUpdates: () => void;
+	initGlobalSubscriptions: () => void;
 };
 
 const useChatStore = create<ChatState>((set, get) => ({
@@ -46,6 +54,7 @@ const useChatStore = create<ChatState>((set, get) => ({
 	contactsHasMore: false,
 	isLoadingMoreContacts: false,
 	messages: [],
+	lastReadAt: null,
 	messagesHasMore: false,
 	isLoadingMoreMessages: false,
 	selectedUser: null,
@@ -123,8 +132,9 @@ const useChatStore = create<ChatState>((set, get) => ({
 	getMessagesByUserId: async (id) => {
 		set({ isMessagesLoading: true });
 		try {
-			const { messages, hasMore } = await messageApi.getMessagesByUserId(id);
-			set({ messages, messagesHasMore: hasMore });
+			const { messages, hasMore, lastReadAt } =
+				await messageApi.getMessagesByUserId(id);
+			set({ messages, messagesHasMore: hasMore, lastReadAt });
 		} catch (error) {
 			toast.error(
 				(error as ErrorResponse)?.message ?? "Failed to fetch messages",
@@ -250,6 +260,195 @@ const useChatStore = create<ChatState>((set, get) => ({
 			toast.error(
 				(error as ErrorResponse)?.message ?? "Failed to delete message",
 			);
+		}
+	},
+
+	markAsRead: async (userId) => {
+		try {
+			await messageApi.markAsRead(userId);
+			set((state) => ({
+				chats: state.chats.map((chat) =>
+					chat.id === userId ? { ...chat, unread: 0 } : chat,
+				),
+			}));
+		} catch (error) {
+			console.error("Failed to mark as read", error);
+		}
+	},
+	togglePin: async (chatId) => {
+		const { chats } = get();
+		const chat = chats.find((c) => c.id === chatId);
+		if (!chat) return;
+
+		const wasPinned = chat.isPinned;
+
+		// Optimistic update
+		set((state) => ({
+			chats: state.chats.map((c) =>
+				c.id === chatId ? { ...c, isPinned: !wasPinned } : c,
+			),
+		}));
+
+		try {
+			const { isPinned } = await messageApi.togglePinChat(chatId);
+			// Confirm with server response
+			set((state) => ({
+				chats: state.chats.map((c) =>
+					c.id === chatId ? { ...c, isPinned } : c,
+				),
+			}));
+		} catch (error) {
+			// Revert on failure
+			set((state) => ({
+				chats: state.chats.map((c) =>
+					c.id === chatId ? { ...c, isPinned: wasPinned } : c,
+				),
+			}));
+			toast.error((error as ErrorResponse)?.message ?? "Failed to update pin");
+		}
+	},
+
+	subscribeToMessages: () => {
+		const { selectedUser, isSoundEnabled } = get();
+		if (!selectedUser) return;
+
+		const socket = useAuthStore.getState().socket;
+		if (!socket) {
+			console.warn("Cannot subscribe to messages: Socket not available");
+			return;
+		}
+
+		socket.on("newMessage", (message) => {
+			// This ensures that the message is received by the correct user
+			const isMessageSentFromSelectedUser =
+				message.senderId === selectedUser.id;
+			if (!isMessageSentFromSelectedUser) return;
+
+			set((state) => ({
+				messages: [
+					...state.messages.filter((m) => m._id !== message._id),
+					message,
+				],
+			}));
+			if (isSoundEnabled) {
+				const notificationSound = new Audio("/sounds/notification.mp3");
+
+				notificationSound.currentTime = 0; //This is for a better UX.
+				notificationSound
+					.play()
+					.catch((error) => console.log("Audio play failed", error));
+			}
+		});
+	},
+
+	unsubscribeFromMessages: () => {
+		const socket = useAuthStore.getState().socket;
+		if (socket) {
+			socket.off("newMessage");
+		}
+	},
+
+	initGlobalSubscriptions: () => {
+		const socket = useAuthStore.getState().socket;
+		if (!socket) return;
+
+		// Remove any existing listeners first to prevent duplicates
+		socket.off("typing:update");
+		socket.off("unreadUpdate");
+		socket.off("messagesRead");
+
+		socket.on(
+			"typing:update",
+			({ senderId, isTyping }: { senderId: string; isTyping: boolean }) => {
+				set((state) => ({
+					chats: state.chats.map((chat) =>
+						chat.id === senderId ? { ...chat, typing: isTyping } : chat,
+					),
+				}));
+			},
+		);
+
+		socket.on(
+			"unreadUpdate",
+			({ senderId, count }: { senderId: string; count: number }) => {
+				set((state) => ({
+					chats: state.chats.map((chat) =>
+						chat.id === senderId ? { ...chat, unread: count } : chat,
+					),
+				}));
+			},
+		);
+
+		socket.on("messagesRead", () => {
+			// Optional: handle "seen" status
+		});
+
+		socket.on("newMessage", (message) => {
+			const state = get();
+			const currentUser = useAuthStore.getState().user;
+
+			// If message is from current user, ignore (it was already handled by sendMessage optimistic update)
+			if (message.senderId === currentUser?._id) return;
+
+			// Check if this sender is in our chats list
+			const existingChat = state.chats.find((c) => c.id === message.senderId);
+
+			if (!existingChat) {
+				// New chat partner — refresh the list
+				state.getChatPartners("");
+				return;
+			}
+
+			// If this is the currently selected chat, add to messages
+			if (state.selectedUser && message.senderId === state.selectedUser.id) {
+				set((s) => ({
+					messages: [
+						...s.messages.filter((m) => m._id !== message._id),
+						message,
+					],
+				}));
+			}
+
+			// Play sound
+			if (state.isSoundEnabled) {
+				const notificationSound = new Audio("/sounds/notification.mp3");
+				notificationSound.currentTime = 0;
+				notificationSound.play().catch(() => {});
+			}
+		});
+	},
+
+	subscribeToUpdates: () => {
+		const socket = useAuthStore.getState().socket;
+		if (!socket) return;
+
+		socket.on("typing:update", ({ senderId, isTyping }) => {
+			set((state) => ({
+				chats: state.chats.map((chat) =>
+					chat.id === senderId ? { ...chat, typing: isTyping } : chat,
+				),
+			}));
+		});
+
+		socket.on("unreadUpdate", ({ senderId, count }) => {
+			set((state) => ({
+				chats: state.chats.map((chat) =>
+					chat.id === senderId ? { ...chat, unread: count } : chat,
+				),
+			}));
+		});
+
+		socket.on("messagesRead", () => {
+			// Optional: handle "seen" status if implemented in UI
+		});
+	},
+
+	unsubscribeFromUpdates: () => {
+		const socket = useAuthStore.getState().socket;
+		if (socket) {
+			socket.off("typing:update");
+			socket.off("unreadUpdate");
+			socket.off("messagesRead");
 		}
 	},
 }));

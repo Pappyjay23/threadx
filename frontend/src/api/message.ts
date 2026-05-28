@@ -33,4 +33,12 @@ export const messageApi = {
 	deleteMessage: async (messageId: string) => {
 		await axiosInstance.delete(`/messages/${messageId}`);
 	},
+
+	markAsRead: async (userId: string) => {
+		await axiosInstance.post(`/messages/${userId}/read`);
+	},
+	togglePinChat: async (userId: string) => {
+		const response = await axiosInstance.patch(`/messages/${userId}/pin`);
+		return response.data.data;
+	},
 };

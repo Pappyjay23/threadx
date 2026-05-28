@@ -1,8 +1,9 @@
+import { useAuthStore } from "@/store/useAuthStore";
 import useChatStore from "@/store/useChatStore";
-import type { ActiveTab } from "@/types/chat";
+import type { ActiveTab, Chat } from "@/types/chat";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BsPin } from "react-icons/bs";
-import { FiPlus, FiSearch } from "react-icons/fi";
+import { BsPinFill } from "react-icons/bs";
+import { FiMoreVertical, FiPlus, FiSearch } from "react-icons/fi";
 import {
 	IoChatbubblesOutline,
 	IoCloseOutline,
@@ -11,6 +12,7 @@ import {
 import EmptyState from "../shared/EmptyState";
 import Input from "../ui/Input";
 import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
+import ConversationMenu from "./ConversationMenu";
 import PresenceAvatar from "./PresenceAvatar";
 
 interface ConversationListProps {
@@ -20,6 +22,7 @@ interface ConversationListProps {
 }
 
 const DEBOUNCE_MS = 350;
+const LONG_PRESS_MS = 500;
 
 const ConversationList = ({
 	onSelectChat,
@@ -31,28 +34,110 @@ const ConversationList = ({
 	const searchRef = useRef<HTMLInputElement | null>(null);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const { chats, setSelectedUser, getChatPartners, isChatsLoading } =
-		useChatStore();
+	const [menuData, setMenuData] = useState<{
+		chat: Chat;
+		top: number;
+		left: number;
+	} | null>(null);
+	const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const isLongPressActive = useRef(false);
+	const longPressTarget = useRef<Chat | null>(null);
+
+	const { onlineUsers } = useAuthStore();
+	const {
+		chats,
+		setSelectedUser,
+		getChatPartners,
+		isChatsLoading,
+		togglePin,
+		markAsRead,
+	} = useChatStore();
 
 	useEffect(() => {
 		getChatPartners("");
-	}, []);
+	}, [getChatPartners]);
 
-	const handleSearch = useCallback((value: string) => {
-		setSearchQuery(value);
-		if (debounceRef.current) clearTimeout(debounceRef.current);
-		debounceRef.current = setTimeout(() => {
-			getChatPartners(value);
-		}, DEBOUNCE_MS);
-	}, []);
+	const handleSearch = useCallback(
+		(value: string) => {
+			setSearchQuery(value);
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+			debounceRef.current = setTimeout(() => {
+				getChatPartners(value);
+			}, DEBOUNCE_MS);
+		},
+		[getChatPartners],
+	);
 
 	const handleCloseSearch = () => {
 		setSearchQuery("");
 		getChatPartners("");
 	};
 
+	// Sorting: Pinned first, then by lastUpdated
+	const sortedChats = [...chats].sort((a, b) => {
+		if (a.isPinned && !b.isPinned) return -1;
+		if (!a.isPinned && b.isPinned) return 1;
+		return 0; // Rest is handled by backend sort
+	});
+
+	const openMenu = (chat: Chat, x: number, y: number) => {
+		const menuWidth = 176;
+		const menuHeight = 120;
+		const left = Math.min(x, window.innerWidth - menuWidth - 8);
+		const top = Math.min(y, window.innerHeight - menuHeight - 8);
+
+		setMenuData({ chat, top, left });
+	};
+
+	const closeMenu = () => {
+		setMenuData(null);
+	};
+
+	const handleMenuButtonClick = (e: React.MouseEvent, chat: Chat) => {
+		e.stopPropagation();
+		e.preventDefault();
+
+		if (menuData && menuData.chat.id === chat.id) {
+			closeMenu();
+			return;
+		}
+
+		const rect = e.currentTarget.getBoundingClientRect();
+		openMenu(chat, rect.left, rect.bottom + 4);
+	};
+
+	const handleTouchStart = (e: React.TouchEvent, chat: Chat) => {
+		isLongPressActive.current = false;
+		longPressTarget.current = chat;
+		if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+
+		const touch = e.touches[0];
+		longPressTimerRef.current = setTimeout(() => {
+			isLongPressActive.current = true;
+			openMenu(chat, touch.clientX, touch.clientY);
+		}, LONG_PRESS_MS);
+	};
+
+	const handleTouchEnd = () => {
+		if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+	};
+
+	const handleTouchMove = () => {
+		// Cancel long press if user scrolls
+		if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+	};
+
+	const handleChatClick = (chat: Chat) => {
+		if (isLongPressActive.current) {
+			isLongPressActive.current = false;
+			return;
+		}
+		onSelectChat(chat.id);
+		setSelectedUser(chat);
+	};
+
 	return (
-		<section className='w-full md:w-80 h-full bg-muted/30 flex flex-col'>
+		<section className='w-full md:w-80 h-full bg-muted/30 flex flex-col relative'>
 			<div className='p-4 flex items-center justify-between'>
 				<h1 className='text-xl font-bold tracking-tight text-white/90'>
 					Chats
@@ -106,17 +191,21 @@ const ConversationList = ({
 			<div className='flex-1 overflow-y-auto space-y-2 px-2 pb-20 md:pb-4'>
 				{isChatsLoading ? (
 					<ChatSkeletonLoader count={6} />
-				) : chats.length > 0 ? (
-					chats.map((chat) => {
+				) : sortedChats.length > 0 ? (
+					sortedChats.map((chat) => {
 						const isActive = chat.id === activeChatId;
 						return (
 							<div
 								key={chat.id}
-								onClick={() => {
-									onSelectChat(chat.id);
-									setSelectedUser(chat);
+								onClick={() => handleChatClick(chat)}
+								onTouchStart={(e) => handleTouchStart(e, chat)}
+								onTouchEnd={handleTouchEnd}
+								onTouchMove={handleTouchMove}
+								onContextMenu={(e) => {
+									e.preventDefault();
+									openMenu(chat, e.clientX, e.clientY);
 								}}
-								className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all duration-150 ${
+								className={`group flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all duration-150 relative ${
 									isActive
 										? "bg-[#7556d3]/20 border border-[#7556d3]/30"
 										: "border border-transparent hover:bg-white/5"
@@ -124,29 +213,48 @@ const ConversationList = ({
 								<PresenceAvatar
 									src={chat.image}
 									name={chat.name}
-									isOnline={chat.isOnline}
+									isOnline={onlineUsers.includes(chat.id)}
 									size='md'
 								/>
 								<div className='flex-1 min-w-0'>
-									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight'>
+									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight flex items-center gap-1.5'>
 										{chat.name}
+										{chat.isPinned && (
+											<BsPinFill className='text-[10px] text-primary shrink-0' />
+										)}
 									</h3>
 									<p
-										className={`text-xs truncate font-light ${chat.typing ? "text-[#a286f7] font-normal" : "text-foreground/50"}`}>
-										{chat.message}
-									</p>
-									<p className='text-[10px] truncate font-light text-foreground/70 mt-1'>
-										{chat.lastUpdated}
+										title={chat.typing ? "Typing..." : chat.message}
+										className={`text-xs truncate font-light ${
+											chat.typing
+												? "text-primary font-normal"
+												: "text-foreground/50"
+										}`}>
+										{chat.typing ? "Typing..." : chat.message}
 									</p>
 								</div>
-								{chat.isPinned && (
-									<BsPin className='text-sm text-foreground/70 mr-1 shrink-0' />
-								)}
-								{chat.unread > 0 && (
-									<span className='h-5 min-w-5 px-1 flex items-center justify-center bg-[#7556d3] text-white text-[10px] font-bold rounded-full shrink-0'>
-										{chat.unread}
-									</span>
-								)}
+
+								<div className='flex items-center gap-1.5 shrink-0'>
+									<div className='flex flex-col items-end gap-1.5'>
+										<p className='text-[10px] truncate font-light text-foreground/70'>
+											{chat.lastUpdated}
+										</p>
+									</div>
+
+									{chat.unread > 0 && (
+										<span className='h-5 min-w-5 px-1 flex items-center justify-center bg-[#7556d3] text-white text-[10px] font-bold rounded-full shrink-0'>
+											{chat.unread}
+										</span>
+									)}
+
+									{/* Three-dot menu button — visible on hover (desktop) */}
+									<button
+										onClick={(e) => handleMenuButtonClick(e, chat)}
+										className='hidden md:flex opacity-0 group-hover:opacity-100 p-1 rounded-full hover:bg-white/10 transition-all duration-150 cursor-pointer shrink-0'
+										aria-label='Chat menu'>
+										<FiMoreVertical className='text-sm text-foreground/50' />
+									</button>
+								</div>
 							</div>
 						);
 					})
@@ -170,6 +278,18 @@ const ConversationList = ({
 					</div>
 				)}
 			</div>
+
+			{menuData && (
+				<ConversationMenu
+					chatId={menuData.chat.id}
+					isPinned={menuData.chat.isPinned}
+					hasUnread={menuData.chat.unread > 0}
+					position={{ top: menuData.top, left: menuData.left }}
+					onClose={closeMenu}
+					onPinToggle={togglePin}
+					onMarkRead={markAsRead}
+				/>
+			)}
 		</section>
 	);
 };
