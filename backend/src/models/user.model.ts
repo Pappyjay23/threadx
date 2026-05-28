@@ -14,6 +14,7 @@ export interface IUser {
 	authProvider: AuthProvider;
 	createdAt: Date;
 	updatedAt: Date;
+	pinnedChats: mongoose.Types.ObjectId[];
 }
 
 interface IUserModel extends Model<IUser> {
@@ -41,6 +42,13 @@ const userSchema = new Schema<IUser, IUserModel>(
 			enum: ["email", "google"],
 			default: "email",
 		},
+		pinnedChats: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: "User",
+				default: [],
+			},
+		],
 	},
 	{ timestamps: true },
 );

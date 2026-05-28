@@ -39,8 +39,19 @@ const conversationSchema = new Schema<IConversation>(
 // Index for sorting by last message
 conversationSchema.index({ lastMessageAt: -1 });
 
-// Note: To ensure uniqueness of the participants pair,
-// we should always sort the IDs before saving/querying.
-conversationSchema.index({ participants: 1 }, { unique: true });
+// Ensure participants are always sorted before saving
+conversationSchema.pre("save", function () {
+	this.participants.sort((a, b) => a.toString().localeCompare(b.toString()));
+});
 
-export default mongoose.model<IConversation>("Conversation", conversationSchema);
+// Compound unique index on both participant slots
+// This ensures the pair is unique, not individual IDs
+conversationSchema.index(
+	{ "participants.0": 1, "participants.1": 1 },
+	{ unique: true },
+);
+
+export default mongoose.model<IConversation>(
+	"Conversation",
+	conversationSchema,
+);

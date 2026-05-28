@@ -51,12 +51,12 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		left: number;
 	} | null>(null);
 	const [showScrollButton, setShowScrollButton] = useState(false);
+	const [hasInitialScrolled, setHasInitialScrolled] = useState(false);
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const messageEndRef = useRef<HTMLDivElement>(null);
 	const topSentinelRef = useRef<HTMLDivElement>(null);
 	const isInitialLoad = useRef(false);
-	const hasInitialScrolled = useRef(false);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const unreadDividerIndex = useRef<number | null>(null);
 
@@ -95,23 +95,6 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		setContextMenu({ top, left });
 	};
 
-	// Calculate unread divider index
-	useEffect(() => {
-		if (!lastReadAt || messages.length === 0) {
-			unreadDividerIndex.current = null;
-			return;
-		}
-
-		const firstUnreadIndex = messages.findIndex(
-			(msg) =>
-				new Date(msg.createdAt) > new Date(lastReadAt) &&
-				msg.senderId !== user?._id,
-		);
-
-		unreadDividerIndex.current =
-			firstUnreadIndex >= 0 ? firstUnreadIndex : null;
-	}, [messages, lastReadAt, user?._id]);
-
 	// Context Menu Handler
 	useEffect(() => {
 		const closeMenu = () => {
@@ -130,7 +113,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 	useEffect(() => {
 		if (chatId) {
 			isInitialLoad.current = true;
-			hasInitialScrolled.current = false;
+			setHasInitialScrolled(false);
 			getMessagesByUserId(chatId);
 			subscribeToMessages();
 			setShowProfile(false);
@@ -147,7 +130,6 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		getMessagesByUserId,
 		subscribeToMessages,
 		unsubscribeFromMessages,
-		markAsRead,
 	]);
 
 	// Mark as read AFTER messages are loaded and scrolled
@@ -156,9 +138,8 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 			chatId &&
 			!isMessagesLoading &&
 			messages.length > 0 &&
-			hasInitialScrolled.current
+			hasInitialScrolled
 		) {
-			// Small delay to let the scroll position settle
 			const timer = setTimeout(() => {
 				markAsRead(chatId);
 			}, 500);
@@ -168,7 +149,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		chatId,
 		isMessagesLoading,
 		messages.length,
-		hasInitialScrolled.current,
+		hasInitialScrolled,
 		markAsRead,
 	]);
 
@@ -183,7 +164,6 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 			setShowScrollButton(distanceFromBottom > 200);
 		};
 
-		// Check initial position
 		handleScroll();
 
 		container.addEventListener("scroll", handleScroll, { passive: true });
@@ -202,7 +182,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		if (!container) return;
 
 		// If this is a socket update (not initial load), handle it separately
-		if (hasInitialScrolled.current) {
+		if (hasInitialScrolled) {
 			const distanceFromBottom =
 				container.scrollHeight - container.scrollTop - container.clientHeight;
 
@@ -213,7 +193,6 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		}
 
 		// Initial load — wait for DOM to render
-		hasInitialScrolled.current = true;
 		isInitialLoad.current = false;
 
 		setTimeout(() => {
@@ -243,6 +222,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 							behavior: "instant",
 							block: "start",
 						});
+						setHasInitialScrolled(true);
 						return;
 					}
 				} else if (lastReadMessageIndex === -1) {
@@ -253,12 +233,14 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 					);
 					if (hasUnreadFromOther) {
 						container.scrollTop = 0;
+						setHasInitialScrolled(true);
 						return;
 					}
 				}
 			}
 
 			scrollToBottom("instant");
+			setHasInitialScrolled(true);
 		}, 100);
 	}, [messages]);
 

@@ -38,6 +38,7 @@ type ChatState = {
 	) => Promise<void>;
 	deleteMessage: (messageId: string) => Promise<void>;
 	markAsRead: (userId: string) => Promise<void>;
+	togglePin: (chatId: string) => Promise<void>;
 	subscribeToMessages: () => void;
 	unsubscribeFromMessages: () => void;
 	subscribeToUpdates: () => void;
@@ -131,7 +132,8 @@ const useChatStore = create<ChatState>((set, get) => ({
 	getMessagesByUserId: async (id) => {
 		set({ isMessagesLoading: true });
 		try {
-			const { messages, hasMore, lastReadAt } = await messageApi.getMessagesByUserId(id);
+			const { messages, hasMore, lastReadAt } =
+				await messageApi.getMessagesByUserId(id);
 			set({ messages, messagesHasMore: hasMore, lastReadAt });
 		} catch (error) {
 			toast.error(
@@ -273,6 +275,38 @@ const useChatStore = create<ChatState>((set, get) => ({
 			console.error("Failed to mark as read", error);
 		}
 	},
+	togglePin: async (chatId) => {
+		const { chats } = get();
+		const chat = chats.find((c) => c.id === chatId);
+		if (!chat) return;
+
+		const wasPinned = chat.isPinned;
+
+		// Optimistic update
+		set((state) => ({
+			chats: state.chats.map((c) =>
+				c.id === chatId ? { ...c, isPinned: !wasPinned } : c,
+			),
+		}));
+
+		try {
+			const { isPinned } = await messageApi.togglePinChat(chatId);
+			// Confirm with server response
+			set((state) => ({
+				chats: state.chats.map((c) =>
+					c.id === chatId ? { ...c, isPinned } : c,
+				),
+			}));
+		} catch (error) {
+			// Revert on failure
+			set((state) => ({
+				chats: state.chats.map((c) =>
+					c.id === chatId ? { ...c, isPinned: wasPinned } : c,
+				),
+			}));
+			toast.error((error as ErrorResponse)?.message ?? "Failed to update pin");
+		}
+	},
 
 	subscribeToMessages: () => {
 		const { selectedUser, isSoundEnabled } = get();
@@ -347,6 +381,40 @@ const useChatStore = create<ChatState>((set, get) => ({
 
 		socket.on("messagesRead", () => {
 			// Optional: handle "seen" status
+		});
+
+		socket.on("newMessage", (message) => {
+			const state = get();
+			const currentUser = useAuthStore.getState().user;
+
+			// If message is from current user, ignore (it was already handled by sendMessage optimistic update)
+			if (message.senderId === currentUser?._id) return;
+
+			// Check if this sender is in our chats list
+			const existingChat = state.chats.find((c) => c.id === message.senderId);
+
+			if (!existingChat) {
+				// New chat partner — refresh the list
+				state.getChatPartners("");
+				return;
+			}
+
+			// If this is the currently selected chat, add to messages
+			if (state.selectedUser && message.senderId === state.selectedUser.id) {
+				set((s) => ({
+					messages: [
+						...s.messages.filter((m) => m._id !== message._id),
+						message,
+					],
+				}));
+			}
+
+			// Play sound
+			if (state.isSoundEnabled) {
+				const notificationSound = new Audio("/sounds/notification.mp3");
+				notificationSound.currentTime = 0;
+				notificationSound.play().catch(() => {});
+			}
 		});
 	},
 
