@@ -5,6 +5,7 @@ import {
 	getChats,
 	getContacts,
 	getMessagesByUserId,
+	markAsRead,
 	sendMessage,
 	uploadMessageSignature,
 } from "../controllers/message.controller.js";
@@ -21,5 +22,6 @@ router.get("/upload-message-signature", uploadMessageSignature);
 router.delete("/:messageId", deleteMessage);
 router.get("/:id", getMessagesByUserId);
 router.post("/send/:id", sendMessage);
+router.post("/:id/read", markAsRead);
 
 export default router;

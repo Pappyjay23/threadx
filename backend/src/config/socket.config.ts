@@ -77,6 +77,26 @@ io.on("connection", (socket: AuthenticatedSocket) => {
 		delete userSocketMap[userId];
 		io.emit("getOnlineUsers", Object.keys(userSocketMap));
 	});
+
+	socket.on("typing:start", ({ receiverId }: { receiverId: string }) => {
+		const receiverSocketId = getReceiverSocketId(receiverId);
+		if (receiverSocketId) {
+			io.to(receiverSocketId).emit("typing:update", {
+				senderId: userId,
+				isTyping: true,
+			});
+		}
+	});
+
+	socket.on("typing:stop", ({ receiverId }: { receiverId: string }) => {
+		const receiverSocketId = getReceiverSocketId(receiverId);
+		if (receiverSocketId) {
+			io.to(receiverSocketId).emit("typing:update", {
+				senderId: userId,
+				isTyping: false,
+			});
+		}
+	});
 });
 
 export { app, io, server };

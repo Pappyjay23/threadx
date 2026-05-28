@@ -7,6 +7,7 @@ import { userApi } from "@/api/user";
 import type { AuthResponse, ErrorResponse } from "@/types/auth";
 import { axiosInstance, BASE_URL } from "@/config/axios";
 import { io, type Socket } from "socket.io-client";
+import useChatStore from "./useChatStore";
 
 type User = AuthResponse["user"];
 
@@ -171,6 +172,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
 		socket.on("connect", () => {
 			console.log("Socket connected successfully with ID:", socket.id);
+			useChatStore.getState().initGlobalSubscriptions();
 		});
 
 		// Handle Reconnection Auth Errors with Socket

@@ -134,8 +134,9 @@ const ConversationList = ({
 										{chat.name}
 									</h3>
 									<p
-										className={`text-xs truncate font-light ${chat.typing ? "text-[#a286f7] font-normal" : "text-foreground/50"}`}>
-										{chat.message}
+										title={chat.typing ? "Typing..." : chat.message}
+										className={`text-xs truncate font-light ${chat.typing ? "text-primary font-normal" : "text-foreground/50"}`}>
+										{chat.typing ? "Typing..." : chat.message}
 									</p>
 									<p className='text-[10px] truncate font-light text-foreground/70 mt-1'>
 										{chat.lastUpdated}

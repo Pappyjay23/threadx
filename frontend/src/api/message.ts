@@ -33,4 +33,8 @@ export const messageApi = {
 	deleteMessage: async (messageId: string) => {
 		await axiosInstance.delete(`/messages/${messageId}`);
 	},
+
+	markAsRead: async (userId: string) => {
+		await axiosInstance.post(`/messages/${userId}/read`);
+	},
 };
