@@ -166,8 +166,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 		const { user } = get();
 		if (!user || get().socket?.connected) return;
 
+		const token = Cookies.get("accessToken");
+
 		const socket = io(BASE_URL, {
 			withCredentials: true,
+			auth: {
+				token: token,
+			},
+			transports: ["websocket", "polling"],
 		});
 
 		socket.on("connect", () => {

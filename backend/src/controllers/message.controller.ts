@@ -124,8 +124,11 @@ export const getChats = async (req: AuthRequest, res: Response) => {
 		const userMap = new Map(users.map((u) => [u._id.toString(), u]));
 
 		// Fetch logged in user to get pinnedChats
-		const currentUser = await User.findById(loggedInUserId).select("pinnedChats");
-		const pinnedChatIds = new Set(currentUser?.pinnedChats?.map(id => id.toString()) || []);
+		const currentUser =
+			await User.findById(loggedInUserId).select("pinnedChats");
+		const pinnedChatIds = new Set(
+			currentUser?.pinnedChats?.map((id) => id.toString()) || [],
+		);
 
 		// Fetch Conversations for unread counts
 		const conversationDocs = await Conversation.find({
@@ -349,7 +352,7 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
 					[`unreadCount.${loggedInUserId}`]: 0,
 				},
 			},
-			{ upsert: true },
+			{ upsert: true, returnDocument: "after" },
 		);
 
 		// Notify partner that messages have been read (optional but requested in plan)
@@ -421,14 +424,13 @@ export const pinChat = async (req: AuthRequest, res: Response) => {
 			typeof rawPartnerId === "string" ? rawPartnerId : rawPartnerId?.[0];
 
 		if (!loggedInUserId) return sendErrorResponse(res, 401, "Unauthorized");
-		if (!partnerId) return sendErrorResponse(res, 400, "Partner id not provided");
+		if (!partnerId)
+			return sendErrorResponse(res, 400, "Partner id not provided");
 
 		const user = await User.findById(loggedInUserId);
 		if (!user) return sendErrorResponse(res, 404, "User not found");
 
-		const isPinned = user.pinnedChats.some(
-			(id) => id.toString() === partnerId,
-		);
+		const isPinned = user.pinnedChats.some((id) => id.toString() === partnerId);
 
 		let updatedUser;
 		if (isPinned) {
