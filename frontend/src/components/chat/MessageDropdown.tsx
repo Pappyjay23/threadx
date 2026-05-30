@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { IoCheckmark, IoCopyOutline, IoTrashOutline } from "react-icons/io5";
 import { toast } from "sonner";
+import { FiCornerUpLeft } from "react-icons/fi";
 
 interface MessageDropdownProps {
 	message?: string;
 	isSelf: boolean;
 	onDelete: () => void;
+	onReply: () => void;
 	isLastMessage: boolean;
 	hasImage: boolean;
 }
@@ -15,6 +17,7 @@ const MessageDropdown = ({
 	message,
 	isSelf,
 	onDelete,
+	onReply,
 	isLastMessage,
 	hasImage,
 }: MessageDropdownProps) => {
@@ -40,6 +43,11 @@ const MessageDropdown = ({
 	const handleDelete = () => {
 		setIsOpen(false);
 		onDelete();
+	};
+
+	const handleReply = () => {
+		setIsOpen(false);
+		onReply();
 	};
 
 	useEffect(() => {
@@ -90,6 +98,13 @@ const MessageDropdown = ({
 			{isOpen && (
 				<div
 					className={`absolute bg-secondary border border-primary/20 rounded-md shadow-xl py-1 min-w-35 z-10 animate-scale-in	${isLastMessage ? (hasImage ? "top-full mt-1" : "bottom-full mb-1") : "top-full mt-1"}	${isSelf ? (isLastMessage ? "right-full md:right-0" : "right-0") : "left-0"}`}>
+					<button
+						onClick={handleReply}
+						className='w-full flex items-center gap-2 px-3 py-2 text-xs text-white/70 hover:text-white hover:bg-white/5 transition-colors cursor-pointer text-left'>
+						<FiCornerUpLeft className='text-sm' />
+						Reply
+					</button>
+
 					{message && (
 						<button
 							onClick={handleCopy}

@@ -6,6 +6,7 @@ interface ConversationMenuProps {
 	chatId: string;
 	isPinned: boolean;
 	hasUnread: boolean;
+	isGroup?: boolean;
 	position: { top: number; left: number } | null;
 	onClose: () => void;
 	onPinToggle: (chatId: string) => void;
@@ -17,6 +18,7 @@ const ConversationMenu = ({
 	chatId,
 	isPinned,
 	hasUnread,
+	isGroup = false,
 	position,
 	onClose,
 	onPinToggle,
@@ -42,7 +44,6 @@ const ConversationMenu = ({
 			if (e.key === "Escape") onClose();
 		};
 
-		// Small delay to prevent the same click that opened the menu from closing it
 		const timeoutId = setTimeout(() => {
 			document.addEventListener("mousedown", handleClickOutside);
 			document.addEventListener("keydown", handleKeyDown);
@@ -111,7 +112,7 @@ const ConversationMenu = ({
 						}}
 						className='w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-red-400/80 hover:text-red-400 hover:bg-red-400/5 transition-all duration-150 cursor-pointer'>
 						<FiTrash2 className='h-3.5 w-3.5 shrink-0' />
-						Delete chat
+						{isGroup ? "Delete group" : "Delete chat"}
 					</button>
 				</>
 			)}

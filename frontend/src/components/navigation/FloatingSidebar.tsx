@@ -111,7 +111,7 @@ const FloatingSidebar = ({ activeTab, setActiveTab }: FloatingSidebarProps) => {
 								/>
 							</div>
 						) : (
-							<div className='relative h-8 w-8 rounded-full bg-linear-to-br from-[#7556d3]/30 to-[#a286f7]/10 border border-[#7556d3]/20 flex items-center justify-center font-bold text-xs text-white/90'>
+							<div className='relative h-8 w-8 rounded-full bg-linear-to-br from-[#7556d3]/30 to-[#a286f7]/10 border border-[#7556d3]/20 flex items-center justify-center font-bold text-xs text-white/90 uppercase'>
 								{getInitials(fullName)}
 								<span
 									className={`absolute bottom-0 right-0 h-2 w-2 ${

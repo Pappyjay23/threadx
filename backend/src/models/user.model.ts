@@ -1,11 +1,12 @@
-import mongoose, { Model } from "mongoose";
+import mongoose, { Document, Model } from "mongoose";
 import bcrypt from "bcrypt";
 
 const Schema = mongoose.Schema;
 
 export type AuthProvider = "email" | "google";
 
-export interface IUser {
+export interface IUser extends Document {
+	_id: mongoose.Types.ObjectId;
 	firstName: string;
 	lastName?: string;
 	email: string;
@@ -45,7 +46,7 @@ const userSchema = new Schema<IUser, IUserModel>(
 		pinnedChats: [
 			{
 				type: Schema.Types.ObjectId,
-				ref: "User",
+				ref: "Conversation",
 				default: [],
 			},
 		],

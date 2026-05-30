@@ -3,7 +3,7 @@ import useChatStore from "@/store/useChatStore";
 import type { ActiveTab, Chat } from "@/types/chat";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BsPinFill } from "react-icons/bs";
-import { FiMoreVertical, FiPlus, FiSearch } from "react-icons/fi";
+import { FiMoreVertical, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
 import {
 	IoChatbubblesOutline,
 	IoCloseOutline,
@@ -14,6 +14,10 @@ import Input from "../ui/Input";
 import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
 import ConversationMenu from "./ConversationMenu";
 import PresenceAvatar from "./PresenceAvatar";
+
+import { LuLoader } from "react-icons/lu";
+import { MdGroupAdd } from "react-icons/md";
+import CreateGroupModal from "./CreateGroupModal";
 
 interface ConversationListProps {
 	onSelectChat: (id: string) => void;
@@ -30,9 +34,16 @@ const ConversationList = ({
 	setActiveTab,
 }: ConversationListProps) => {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const searchRef = useRef<HTMLInputElement | null>(null);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [deleteConfirm, setDeleteConfirm] = useState<{
+		chatId: string;
+		chatName: string;
+		isGroup: boolean;
+	} | null>(null);
 
 	const [menuData, setMenuData] = useState<{
 		chat: Chat;
@@ -43,14 +54,17 @@ const ConversationList = ({
 	const isLongPressActive = useRef(false);
 	const longPressTarget = useRef<Chat | null>(null);
 
-	const { onlineUsers } = useAuthStore();
+	const { onlineUsers, user } = useAuthStore();
 	const {
 		chats,
-		setSelectedUser,
+		setSelectedChat,
 		getChatPartners,
 		isChatsLoading,
 		togglePin,
 		markAsRead,
+		deleteDirectChat,
+		leaveGroup,
+		deleteGroup,
 	} = useChatStore();
 
 	useEffect(() => {
@@ -133,7 +147,7 @@ const ConversationList = ({
 			return;
 		}
 		onSelectChat(chat.id);
-		setSelectedUser(chat);
+		setSelectedChat(chat);
 	};
 
 	return (
@@ -144,7 +158,14 @@ const ConversationList = ({
 				</h1>
 				<div className='flex items-center gap-2'>
 					<button
+						onClick={() => setIsCreateGroupModalOpen(true)}
+						title='New Group'
+						className='p-2 text-foreground border border-transparent hover:border-primary/50 rounded-full hover:bg-white/5 transition-all duration-500 ease-in-out cursor-pointer'>
+						<MdGroupAdd className='text-lg' />
+					</button>
+					<button
 						onClick={() => setActiveTab("contacts")}
+						title='New Chat'
 						className='p-2 text-foreground border border-transparent hover:border-primary/50 rounded-full hover:bg-white/5 transition-all duration-500 ease-in-out cursor-pointer'>
 						<FiPlus className='text-base' />
 					</button>
@@ -193,7 +214,9 @@ const ConversationList = ({
 					<ChatSkeletonLoader count={6} />
 				) : sortedChats.length > 0 ? (
 					sortedChats.map((chat) => {
-						const isActive = chat.id === activeChatId;
+						const isActive =
+							chat.id === activeChatId ||
+							(chat.type === "direct" && chat.partnerId === activeChatId);
 						return (
 							<div
 								key={chat.id}
@@ -213,11 +236,15 @@ const ConversationList = ({
 								<PresenceAvatar
 									src={chat.image}
 									name={chat.name}
-									isOnline={onlineUsers.includes(chat.id)}
+									isOnline={
+										chat.type === "direct" && chat.partnerId
+											? onlineUsers.includes(chat.partnerId)
+											: false
+									}
 									size='md'
 								/>
 								<div className='flex-1 min-w-0'>
-									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight flex items-center gap-1.5'>
+									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight flex items-center gap-1.5 capitalize'>
 										{chat.name}
 										{chat.isPinned && (
 											<BsPinFill className='text-[10px] text-primary shrink-0' />
@@ -234,11 +261,11 @@ const ConversationList = ({
 									</p>
 								</div>
 
-								<div className='flex items-center gap-1.5 shrink-0'>
+								<div className='flex items-center gap-1 shrink-0'>
 									<div className='flex flex-col items-end gap-1.5'>
-										<p className='text-[10px] truncate font-light text-foreground/70'>
+										<span className='text-[10px] text-primary/90'>
 											{chat.lastUpdated}
-										</p>
+										</span>
 									</div>
 
 									{chat.unread > 0 && (
@@ -284,11 +311,96 @@ const ConversationList = ({
 					chatId={menuData.chat.id}
 					isPinned={menuData.chat.isPinned}
 					hasUnread={menuData.chat.unread > 0}
+					isGroup={menuData.chat.type === "group"}
 					position={{ top: menuData.top, left: menuData.left }}
 					onClose={closeMenu}
 					onPinToggle={togglePin}
 					onMarkRead={markAsRead}
+					onDelete={(chatId) => {
+						closeMenu();
+						const chat = chats.find((c) => c.id === chatId);
+						if (chat) {
+							setDeleteConfirm({
+								chatId,
+								chatName: chat.name,
+								isGroup: chat.type === "group",
+							});
+						}
+					}}
 				/>
+			)}
+
+			<CreateGroupModal
+				isOpen={isCreateGroupModalOpen}
+				onClose={() => setIsCreateGroupModalOpen(false)}
+			/>
+
+			{deleteConfirm && (
+				<div
+					className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in'
+					onClick={(e) => {
+						if (e.target === e.currentTarget && !isDeleting)
+							setDeleteConfirm(null);
+					}}>
+					<div className='bg-background border border-primary/20 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl'>
+						<div className='p-6 text-center'>
+							<div className='mx-auto w-12 h-12 rounded-full bg-red-400/10 flex items-center justify-center mb-4'>
+								<FiTrash2 className='text-red-400 text-xl' />
+							</div>
+							<h3 className='text-lg font-bold text-white mb-2'>
+								{deleteConfirm.isGroup ? "Delete Group" : "Delete Chat"}
+							</h3>
+							<p className='text-xs text-white/50 leading-relaxed'>
+								Are you sure you want to delete{" "}
+								<span className='text-white/80 font-medium'>
+									{deleteConfirm.chatName}
+								</span>
+								?
+								{deleteConfirm.isGroup
+									? " This will remove the group and all messages for everyone."
+									: " This will delete all messages in this conversation."}{" "}
+								This action cannot be undone.
+							</p>
+						</div>
+						<div className='border-t border-primary/10 flex'>
+							<button
+								onClick={() => setDeleteConfirm(null)}
+								disabled={isDeleting}
+								className='flex-1 px-4 py-3 text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50'>
+								Cancel
+							</button>
+							<button
+								onClick={async () => {
+									setIsDeleting(true);
+									if (deleteConfirm.isGroup) {
+										const chat = chats.find(
+											(c) => c.id === deleteConfirm.chatId,
+										);
+										if (chat?.admin === user?._id) {
+											await deleteGroup(deleteConfirm.chatId);
+										} else {
+											await leaveGroup(deleteConfirm.chatId);
+										}
+									} else {
+										await deleteDirectChat(deleteConfirm.chatId);
+									}
+									setIsDeleting(false);
+									setDeleteConfirm(null);
+								}}
+								disabled={isDeleting}
+								className='flex-1 px-4 py-3 text-xs font-bold text-red-400 hover:text-red-300 border-l border-primary/10 hover:bg-red-400/5 transition-colors cursor-pointer disabled:opacity-50'>
+								{isDeleting ? (
+									<span className='flex items-center justify-center gap-2'>
+										Deleting
+										<LuLoader className='animate-spin h-3.5 w-3.5' />
+									</span>
+								) : (
+									"Delete"
+								)}
+							</button>
+						</div>
+					</div>
+				</div>
 			)}
 		</section>
 	);

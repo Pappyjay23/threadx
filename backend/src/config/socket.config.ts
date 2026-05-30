@@ -7,6 +7,7 @@ import {
 	type AuthenticatedSocket,
 } from "../middlewares/socket.auth.middleware.js";
 import { ENV } from "./env.config.js";
+import Conversation from "../models/conversation.model.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -81,25 +82,68 @@ io.on("connection", (socket: AuthenticatedSocket) => {
 		io.emit("getOnlineUsers", Object.keys(userSocketMap));
 	});
 
-	socket.on("typing:start", ({ receiverId }: { receiverId: string }) => {
-		const receiverSocketId = getReceiverSocketId(receiverId);
-		if (receiverSocketId) {
-			io.to(receiverSocketId).emit("typing:update", {
-				senderId: userId,
-				isTyping: true,
-			});
-		}
-	});
+	// Updated typing handlers to use conversationId and broadcast to all participants
+	socket.on(
+		"typing:start",
+		async ({ conversationId }: { conversationId: string }) => {
+			if (!conversationId) return;
 
-	socket.on("typing:stop", ({ receiverId }: { receiverId: string }) => {
-		const receiverSocketId = getReceiverSocketId(receiverId);
-		if (receiverSocketId) {
-			io.to(receiverSocketId).emit("typing:update", {
-				senderId: userId,
-				isTyping: false,
-			});
-		}
-	});
+			try {
+				const conversation = await Conversation.findById(conversationId);
+				if (!conversation) return;
+
+				const senderName = `${socket.user.firstName}${socket.user.lastName ? ` ${socket.user.lastName}` : ""}`;
+
+				conversation.participants.forEach((participantId) => {
+					const participantIdStr = participantId.toString();
+					if (participantIdStr !== userId) {
+						const socketId = getReceiverSocketId(participantIdStr);
+						if (socketId) {
+							io.to(socketId).emit("typing:update", {
+								conversationId,
+								isTyping: true,
+								senderId: userId,
+								senderName,
+							});
+						}
+					}
+				});
+			} catch (error) {
+				console.error("Error in typing:start:", error);
+			}
+		},
+	);
+
+	socket.on(
+		"typing:stop",
+		async ({ conversationId }: { conversationId: string }) => {
+			if (!conversationId) return;
+
+			try {
+				const conversation = await Conversation.findById(conversationId);
+				if (!conversation) return;
+
+				const senderName = `${socket.user.firstName}${socket.user.lastName ? ` ${socket.user.lastName}` : ""}`;
+
+				conversation.participants.forEach((participantId) => {
+					const participantIdStr = participantId.toString();
+					if (participantIdStr !== userId) {
+						const socketId = getReceiverSocketId(participantIdStr);
+						if (socketId) {
+							io.to(socketId).emit("typing:update", {
+								conversationId,
+								isTyping: false,
+								senderId: userId,
+								senderName,
+							});
+						}
+					}
+				});
+			} catch (error) {
+				console.error("Error in typing:stop:", error);
+			}
+		},
+	);
 });
 
 export { app, io, server };
