@@ -38,14 +38,14 @@ const LandingPage = () => {
 
 						<div className='pt-4 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto'>
 							<Link to='/signup' className='w-full sm:w-auto'>
-								<Button className='w-full sm:w-fit px-8 py-3 shadow-lg shadow-[#7556d3]/20'>
+								<Button className='w-full sm:w-fit px-8! py-3 shadow-lg shadow-[#7556d3]/20'>
 									Start Messaging
 								</Button>
 							</Link>
 							<Link to='/login' className='w-full sm:w-auto'>
 								<Button
 									btnStyle='outlined'
-									className='w-full sm:w-fit px-8 py-3 transition-all duration-300'>
+									className='w-full sm:w-fit px-8! py-3 transition-all duration-300'>
 									Sign In
 								</Button>
 							</Link>
