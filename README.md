@@ -8,6 +8,7 @@
 **ThreadX** is a full-stack real-time messaging application built for seamless one-on-one and group conversations. Users sign up (or continue with Google), and immediately get access to a conversation-centric workspace: Direct chats, group rooms with admin controls, image sharing, message replies, pinned chats, and live typing indicators—all streaming over WebSocket in real time. The app pairs a fast React SPA with a secure Express API backed by MongoDB, using JWT access tokens, httpOnly refresh cookies, automatic token refresh, and Arcjet-powered security on every endpoint.
 
 ## Snapshot 📸
+<img width="1920" height="1080" alt="Screenshot (50)" src="https://github.com/user-attachments/assets/fb2a86ce-b3c3-4461-a097-4be063f5c408" />
 
 
 ## 🛠 Tech Stack
