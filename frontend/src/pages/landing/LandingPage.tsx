@@ -66,7 +66,7 @@ const LandingPage = () => {
 
 							<div className='overflow-hidden rounded-b-xl bg-[#060415]'>
 								<img
-									src='dashboard.png'
+									src='dashboard_.png'
 									alt='ThreadX Interactive Architecture Dashboard Preview'
 									className='w-full h-auto opacity-85 group-hover:opacity-100 transition-opacity duration-500 object-cover select-none pointer-events-none'
 								/>
