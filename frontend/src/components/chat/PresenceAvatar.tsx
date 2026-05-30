@@ -38,7 +38,7 @@ const PresenceAvatar = ({
 				</div>
 			) : (
 				<div
-					className={`${dimensions[size]} bg-linear-to-br from-[#7556d3]/30 to-[#a286f7]/10 border border-[#7556d3]/20 flex items-center justify-center font-bold`}>
+					className={`${dimensions[size]} bg-linear-to-br from-[#7556d3]/30 to-[#a286f7]/10 border border-[#7556d3]/20 flex items-center justify-center font-bold uppercase`}>
 					<p>{getInitials(name || "")}</p>
 				</div>
 			)}

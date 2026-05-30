@@ -2,6 +2,11 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IConversation extends Document {
 	participants: mongoose.Types.ObjectId[];
+	type: "direct" | "group";
+	name?: string;
+	groupAvatar?: string;
+	admin?: mongoose.Types.ObjectId;
+	hidden: mongoose.Types.Map<boolean>;
 	lastReadAt: mongoose.Types.Map<Date>;
 	unreadCount: mongoose.Types.Map<number>;
 	lastMessageAt: Date;
@@ -18,6 +23,22 @@ const conversationSchema = new Schema<IConversation>(
 				required: true,
 			},
 		],
+		type: {
+			type: String,
+			enum: ["direct", "group"],
+			default: "direct",
+		},
+		name: {
+			type: String,
+			trim: true,
+		},
+		groupAvatar: {
+			type: String,
+		},
+		admin: {
+			type: Schema.Types.ObjectId,
+			ref: "User",
+		},
 		lastReadAt: {
 			type: Map,
 			of: Date,
@@ -32,24 +53,20 @@ const conversationSchema = new Schema<IConversation>(
 			type: Date,
 			default: Date.now,
 		},
+		hidden: {
+			type: Map,
+			of: Boolean,
+			default: {},
+		},
 	},
 	{ timestamps: true },
 );
 
-// Index for sorting by last message
+// Index for sorting chats by last message
 conversationSchema.index({ lastMessageAt: -1 });
 
-// Ensure participants are always sorted before saving
-conversationSchema.pre("save", function () {
-	this.participants.sort((a, b) => a.toString().localeCompare(b.toString()));
-});
-
-// Compound unique index on both participant slots
-// This ensures the pair is unique, not individual IDs
-conversationSchema.index(
-	{ "participants.0": 1, "participants.1": 1 },
-	{ unique: true },
-);
+// Index for finding all conversations a user participates in
+conversationSchema.index({ participants: 1, lastMessageAt: -1 });
 
 export default mongoose.model<IConversation>(
 	"Conversation",

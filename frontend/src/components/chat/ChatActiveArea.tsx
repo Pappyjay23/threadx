@@ -12,6 +12,7 @@ import PresenceAvatar from "./PresenceAvatar";
 import DateSeparator from "./DateSeparator";
 import { getDateLabel } from "@/utils/helpers";
 import ChatContextMenu from "./ChatContextMenu";
+import type { PopulatedSender } from "@/types/chat";
 
 interface ChatActiveAreaProps {
 	chatId?: string;
@@ -21,13 +22,13 @@ interface ChatActiveAreaProps {
 
 const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 	const {
-		selectedUser,
+		selectedChat,
 		messages,
 		messagesHasMore,
 		isMessagesLoading,
 		isLoadingMoreMessages,
 		lastReadAt,
-		getMessagesByUserId,
+		getMessages,
 		loadMoreMessages,
 		sendMessage,
 		subscribeToMessages,
@@ -37,8 +38,11 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 	} = useChatStore();
 	const { user, onlineUsers } = useAuthStore();
 
+	const isDirect = selectedChat?.type === "direct";
 	const isOnline =
-		selectedUser && onlineUsers.includes(selectedUser.id.toString());
+		isDirect &&
+		selectedChat?.partnerId &&
+		onlineUsers.includes(selectedChat.partnerId);
 
 	const activeChat = chats.find((c) => c.id === chatId);
 	const isTyping = activeChat?.typing;
@@ -114,7 +118,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		if (chatId) {
 			isInitialLoad.current = true;
 			setHasInitialScrolled(false);
-			getMessagesByUserId(chatId);
+			getMessages(chatId);
 			subscribeToMessages();
 			setShowProfile(false);
 			setIsSearchOpen(false);
@@ -125,12 +129,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 		return () => {
 			unsubscribeFromMessages();
 		};
-	}, [
-		chatId,
-		getMessagesByUserId,
-		subscribeToMessages,
-		unsubscribeFromMessages,
-	]);
+	}, [chatId, getMessages, subscribeToMessages, unsubscribeFromMessages]);
 
 	// Mark as read AFTER messages are loaded and scrolled
 	useEffect(() => {
@@ -304,77 +303,89 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 
 	return (
 		<div className='flex-1 flex-col bg-workspace-noise h-full relative flex z-20'>
-			<div className='p-4 border-b border-primary/10 backdrop-blur-md flex items-center justify-between gap-3'>
-				<div
-					className='flex items-center gap-3 cursor-pointer group shrink-0'
-					onClick={() => setShowProfile(true)}>
-					<PresenceAvatar
-						isOnline={isOnline ?? false}
-						size='md'
-						src={selectedUser?.image}
-						name={selectedUser?.name}
-					/>
-					<div>
-						<p className='text-sm font-semibold text-white/90 group-hover:text-primary/90 transition-colors duration-300'>
-							{selectedUser?.name ?? "ThreadX User"}
-						</p>
-						<span
-							className={`text-[10px] ${
-								isTyping
-									? "text-primary italic animate-pulse"
-									: isOnline
-										? "text-[#10b981]"
-										: "text-white/40"
-							} font-light tracking-wide`}>
-							{isTyping ? "Typing..." : isOnline ? "Online" : "Offline"}
-						</span>
-					</div>
-				</div>
-
-				<div className='flex items-center gap-1 md:gap-2'>
+			<div className='border-b border-primary/10 backdrop-blur-md'>
+				<div className='p-4 flex items-center justify-between gap-3'>
 					<div
-						className={`flex items-center gap-2 transition-all duration-300 ease-in-out ${
-							isSearchOpen
-								? "w-25 md:w-64"
-								: "w-0 overflow-hidden opacity-0 pointer-events-none"
-						}`}>
-						<div className='relative flex items-center w-full'>
-							<FiSearch className='absolute left-3 h-3.5 w-3.5 text-foreground/40 shrink-0' />
-							<input
-								ref={searchInputRef}
-								value={messageSearch}
-								onChange={(e) => setMessageSearch(e.target.value)}
-								placeholder='Search messages...'
-								className='w-full bg-white/5 border border-primary/20 rounded-full py-1.5 pl-8 pr-8 text-[10px] md:text-xs text-white/80 placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 transition-colors'
-							/>
-							{messageSearch && (
-								<button
-									onClick={() => setMessageSearch("")}
-									className='absolute right-3 text-foreground/40 hover:text-white transition-colors cursor-pointer'>
-									<IoCloseOutline className='text-sm' />
-								</button>
-							)}
+						className='flex items-center gap-3 cursor-pointer group shrink-0'
+						onClick={() => setShowProfile(true)}>
+						<PresenceAvatar
+							isOnline={!!isOnline}
+							size='md'
+							src={selectedChat?.image}
+							name={selectedChat?.name}
+						/>
+						<div>
+							<p className='text-sm font-semibold text-white/90 group-hover:text-primary/90 transition-colors duration-300 mb-1 capitalize'>
+								{selectedChat?.name ??
+									(isDirect ? "ThreadX User" : "ThreadX Group")}
+							</p>
+							<span
+								className={`text-[10px] ${
+									isTyping
+										? "text-primary italic animate-pulse"
+										: isOnline
+											? "text-[#10b981]"
+											: "text-white/40"
+								} font-light tracking-wide truncate max-w-50 block capitalize`}>
+								{isTyping
+									? "Typing..."
+									: isDirect
+										? isOnline
+											? "Online"
+											: "Offline"
+										: selectedChat?.members
+												?.map((m) => m.name.split(" ")[0])
+												.join(", ") || "Group"}
+							</span>
 						</div>
 					</div>
 
-					<button
-						onClick={() => {
-							setIsSearchOpen((prev) => !prev);
-							if (isSearchOpen) setMessageSearch("");
-						}}
-						className={`p-2 border rounded-full transition-all duration-300 ease-in-out cursor-pointer shrink-0 ${
-							isSearchOpen
-								? "text-[#a286f7] border-[#7556d3]/50 bg-[#7556d3]/10"
-								: "text-foreground border-transparent hover:border-primary/50 hover:bg-white/5"
-						}`}>
-						<FiSearch className='text-xs md:text-sm' />
-					</button>
+					<div className='flex items-center gap-1 md:gap-2'>
+						<button
+							onClick={() => {
+								setIsSearchOpen((prev) => !prev);
+								if (isSearchOpen) setMessageSearch("");
+							}}
+							className={`p-2 border rounded-full transition-all duration-300 ease-in-out cursor-pointer shrink-0 ${
+								isSearchOpen
+									? "text-[#a286f7] border-[#7556d3]/50 bg-[#7556d3]/10"
+									: "text-foreground border-transparent hover:border-primary/50 hover:bg-white/5"
+							}`}>
+							<FiSearch className='text-xs md:text-sm' />
+						</button>
 
-					<button
-						onClick={onCloseChat}
-						className='p-2 text-foreground border border-transparent hover:border-primary/50 rounded-full hover:bg-white/5 transition-all duration-500 ease-in-out cursor-pointer shrink-0'>
-						<FiX className='text-xs md:text-sm' />
-					</button>
+						<button
+							onClick={onCloseChat}
+							className='p-2 text-foreground border border-transparent hover:border-primary/50 rounded-full hover:bg-white/5 transition-all duration-500 ease-in-out cursor-pointer shrink-0'>
+							<FiX className='text-xs md:text-sm' />
+						</button>
+					</div>
+				</div>
+
+				{/* Search bar below header */}
+				<div
+					className={`overflow-hidden transition-all duration-300 ease-in-out ml-auto ${
+						isSearchOpen
+							? "max-h-14 opacity-100 pb-3 w-64"
+							: "max-h-0 opacity-0 pb-0 w-64 pointer-events-none"
+					}`}>
+					<div className='relative flex items-center px-4'>
+						<FiSearch className='absolute left-7 h-3.5 w-3.5 text-foreground/40 shrink-0' />
+						<input
+							ref={searchInputRef}
+							value={messageSearch}
+							onChange={(e) => setMessageSearch(e.target.value)}
+							placeholder='Search messages...'
+							className='w-full bg-white/5 border border-primary/20 rounded-full py-1.5 pl-8 pr-8 text-[10px] md:text-xs text-white/80 placeholder:text-foreground/30 focus:outline-none focus:border-primary/50 transition-colors'
+						/>
+						{messageSearch && (
+							<button
+								onClick={() => setMessageSearch("")}
+								className='absolute right-7 text-foreground/40 hover:text-white transition-colors cursor-pointer'>
+								<IoCloseOutline className='text-sm' />
+							</button>
+						)}
+					</div>
 				</div>
 			</div>
 
@@ -427,18 +438,12 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 									</div>
 								)}
 								<ChatBubble
-									messageId={msg._id}
-									message={msg?.text ?? ""}
-									isSelf={msg?.senderId === user?._id}
-									timestamp={
-										msg?.createdAt
-											? new Date(msg.createdAt).toLocaleTimeString([], {
-													hour: "2-digit",
-													minute: "2-digit",
-												})
-											: ""
+									message={msg}
+									isSelf={
+										typeof msg.senderId === "string"
+											? msg.senderId === user?._id
+											: (msg.senderId as PopulatedSender)?._id === user?._id
 									}
-									image={msg?.image}
 									searchQuery={messageSearch}
 									isLastMessage={index === filteredMessages.length - 1}
 								/>
@@ -468,8 +473,9 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 					<div className={`flex w-full justify-start mb-3 px-2`}>
 						<div className='max-w-[85%] md:max-w-[70%] group relative flex items-start gap-2 flex-row'>
 							<div className='flex-1'>
-								<p className='text-[10px] font-light text-white/60 mb-1 text-left ml-1'>
-									{selectedUser?.name ?? "User"}
+								<p className='text-[10px] font-light text-white/60 mb-1 text-left ml-1 capitalize'>
+									{activeChat?.typingUser ||
+										(isDirect ? (selectedChat?.name ?? "User") : "Someone")}
 								</p>
 
 								<div className='w-17 shadow-lg text-white/80 rounded-t-lg rounded-br-lg bg-secondary border border-primary/10'>
@@ -501,7 +507,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 			{showScrollButton && (
 				<button
 					onClick={() => scrollToBottom()}
-					className='fixed bottom-24 right-[50%] translate-x-1/2 p-2 bg-primary/90 hover:bg-primary text-white rounded-full shadow-lg shadow-primary/20 transition-all duration-200 cursor-pointer z-50 animate-fade-in'
+					className='absolute bottom-20 left-1/2 -translate-x-1/2 p-2 bg-primary/90 hover:bg-primary text-white rounded-full shadow-lg shadow-primary/20 transition-all duration-200 cursor-pointer z-50 animate-fade-in'
 					aria-label='Scroll to bottom'>
 					<FiArrowDown className='text-sm' />
 				</button>
@@ -516,19 +522,7 @@ const ChatActiveArea = ({ chatId, onCloseChat }: ChatActiveAreaProps) => {
 			<ChatProfilePanel
 				isOpen={showProfile}
 				onClose={() => setShowProfile(false)}
-				chat={
-					selectedUser
-						? {
-								id: selectedUser.id,
-								name: selectedUser.name,
-								image: selectedUser.image,
-								isOnline: isOnline || false,
-								email: selectedUser.email,
-								username: selectedUser.username,
-								dateJoined: selectedUser.dateJoined,
-							}
-						: undefined
-				}
+				chat={selectedChat}
 			/>
 
 			<ChatContextMenu

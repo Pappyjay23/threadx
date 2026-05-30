@@ -142,7 +142,7 @@ const ProfilePane = ({ onBack }: ProfilePaneProps) => {
 						</button>
 					</div>
 
-					<h2 className='mt-4 text-lg font-semibold text-white/90'>
+					<h2 className='mt-4 text-lg font-semibold text-white/90 capitalize'>
 						{fullName}
 					</h2>
 				</div>

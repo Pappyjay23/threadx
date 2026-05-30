@@ -1,3 +1,4 @@
+import type { PopulatedSender } from "@/types/chat";
 import useSound from "@/hooks/useSound";
 import useChatStore from "@/store/useChatStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -54,7 +55,7 @@ const previewComponents: Components = {
 };
 
 const ChatInput = ({ onSendMessage }: ChatInputProps) => {
-	const { activeChatId, isSoundEnabled, selectedUser } = useChatStore();
+	const { activeChatId, isSoundEnabled, replyingTo, setReplyingTo } = useChatStore();
 	const { playRandomKeyStrokeSound, playSendMessageSound } = useSound();
 
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -102,10 +103,9 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 	const sendMessage = () => {
 		if (!text.trim() && !imageFile) return;
 		
-		// Stop typing indicator immediately
 		const socket = useAuthStore.getState().socket;
-		if (socket && selectedUser && isLocalTyping) {
-			socket.emit("typing:stop", { receiverId: selectedUser.id });
+		if (socket && activeChatId && isLocalTyping) {
+			socket.emit("typing:stop", { conversationId: activeChatId });
 			setIsLocalTyping(false);
 			if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 		}
@@ -115,6 +115,7 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		setImageFile(null);
 		setImagePreview(null);
 		setIsPreviewMode(false);
+		setReplyingTo(null);
 		if (fileInputRef.current) fileInputRef.current.value = "";
 		if (isSoundEnabled) playSendMessageSound();
 	};
@@ -154,7 +155,6 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 
 		const { selectionStart, selectionEnd } = textarea;
 
-		// Only show if there's an actual selection
 		if (selectionStart === selectionEnd) {
 			setToolbarPosition(null);
 			return;
@@ -162,10 +162,9 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 
 		setSavedSelection({ start: selectionStart, end: selectionEnd });
 
-		// Position toolbar above the selection
 		const rect = textarea.getBoundingClientRect();
 		setToolbarPosition({
-			top: rect.top - 44, // above the textarea
+			top: rect.top - 44,
 			left: rect.left + 8,
 		});
 	};
@@ -176,8 +175,6 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		const { start, end } = savedSelection;
 		const selected = text.slice(start, end);
 
-		// Trim leading/trailing whitespace from selection
-		// but track how much was trimmed to adjust positions
 		const trimmedStart = selected.length - selected.trimStart().length;
 		const trimmedEnd = selected.length - selected.trimEnd().length;
 
@@ -185,7 +182,6 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		const adjustedEnd = end - trimmedEnd;
 		const trimmedSelected = selected.trim();
 
-		// Nothing left after trimming — bail
 		if (!trimmedSelected) return;
 
 		const wrappers = {
@@ -206,7 +202,6 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 
 		setText(newText);
 
-		// Place cursor after the closing wrapper
 		requestAnimationFrame(() => {
 			if (!textareaRef.current) return;
 			const newCursor =
@@ -224,7 +219,6 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		});
 	}, [activeChatId]);
 
-	// Focus textarea when switching back to edit mode
 	useEffect(() => {
 		if (!isPreviewMode) {
 			requestAnimationFrame(() => textareaRef.current?.focus());
@@ -233,17 +227,17 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 
 	const handleTyping = () => {
 		const socket = useAuthStore.getState().socket;
-		if (!socket || !selectedUser) return;
+		if (!socket || !activeChatId) return;
 
 		if (!isLocalTyping) {
 			setIsLocalTyping(true);
-			socket.emit("typing:start", { receiverId: selectedUser.id });
+			socket.emit("typing:start", { conversationId: activeChatId });
 		}
 
 		if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
 		typingTimeoutRef.current = setTimeout(() => {
-			socket.emit("typing:stop", { receiverId: selectedUser.id });
+			socket.emit("typing:stop", { conversationId: activeChatId });
 			setIsLocalTyping(false);
 		}, 3000);
 	};
@@ -254,6 +248,26 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 		<form
 			onSubmit={handleSubmit}
 			className='p-3 bg-background-noise border-t border-primary/10'>
+			{replyingTo && (
+				<div className='w-full md:w-[90%] mx-auto mb-2 flex items-center gap-3 bg-secondary/50 border-l-4 border-primary p-2 rounded animate-slide-up relative'>
+					<div className='flex-1 min-w-0'>
+						<p className='text-[10px] font-bold text-primary'>
+							Replying to {typeof replyingTo.senderId === "object" 
+								? (replyingTo.senderId as PopulatedSender).firstName 
+								: "User"}
+						</p>
+						<p className='text-xs text-white/60 truncate'>
+							{replyingTo.text || (replyingTo.image ? "📷 Image" : "Message")}
+						</p>
+					</div>
+					<button
+						type='button'
+						onClick={() => setReplyingTo(null)}
+						className='text-foreground/40 hover:text-white transition-colors cursor-pointer p-1'>
+						<IoCloseOutline className='text-lg' />
+					</button>
+				</div>
+			)}
 			{imagePreview && (
 				<div className='w-full md:w-[90%] mx-auto mb-2 flex items-center gap-2'>
 					<div className='relative inline-block'>

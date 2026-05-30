@@ -8,6 +8,7 @@ import Input from "../ui/Input";
 import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
 import PresenceAvatar from "./PresenceAvatar";
 import { useAuthStore } from "@/store/useAuthStore";
+import type { Chat } from "@/types/chat";
 
 interface ContactListProps {
 	onSelectChat: (id: string) => void;
@@ -28,14 +29,13 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 		isLoadingMoreContacts,
 		getContacts,
 		loadMoreContacts,
-		setSelectedUser,
+		setSelectedChat,
 	} = useChatStore();
-	// Initial load
+
 	useEffect(() => {
 		getContacts(1, "");
 	}, []);
 
-	// Debounced search — resets to page 1
 	const handleSearch = useCallback((value: string) => {
 		setSearchQuery(value);
 		if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -44,7 +44,6 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 		}, DEBOUNCE_MS);
 	}, []);
 
-	// Infinite scroll sentinel
 	useEffect(() => {
 		if (!sentinelRef.current) return;
 
@@ -64,6 +63,28 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 		observer.observe(sentinelRef.current);
 		return () => observer.disconnect();
 	}, [contactsHasMore, isLoadingMoreContacts, searchQuery]);
+
+	const handleContactClick = (contact: (typeof contacts)[0]) => {
+		const chat: Chat = {
+			id: contact.id,
+			type: "direct",
+			name: contact.name,
+			image: contact.image,
+			email: contact.email,
+			username: contact.username,
+			dateJoined: contact.dateJoined,
+			message: "",
+			unread: 0,
+			typing: false,
+			isPinned: false,
+			lastUpdated: "",
+			lastUpdatedTimestamp: 0,
+			isOnline: onlineUsers.includes(contact.id),
+		};
+
+		setSelectedChat(chat);
+		onSelectChat(contact.id);
+	};
 
 	return (
 		<section className='w-full md:w-80 h-full bg-muted/30 flex flex-col'>
@@ -100,10 +121,7 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 						{contacts.map((contact) => (
 							<div
 								key={contact.id}
-								onClick={() => {
-									onSelectChat(contact.id);
-									setSelectedUser(contact);
-								}}
+								onClick={() => handleContactClick(contact)}
 								className='flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all duration-300 ease-in-out border border-transparent hover:bg-white/5'>
 								<PresenceAvatar
 									src={contact.image}
@@ -112,7 +130,7 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 									size='md'
 								/>
 								<div className='flex-1 min-w-0'>
-									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight'>
+									<h3 className='text-sm font-medium text-white/90 truncate tracking-tight capitalize'>
 										{contact.name}
 									</h3>
 									<p className='text-xs truncate font-light text-foreground/60'>
@@ -122,7 +140,6 @@ const ContactList = ({ onSelectChat }: ContactListProps) => {
 							</div>
 						))}
 
-						{/* Infinite scroll sentinel */}
 						<div ref={sentinelRef} className='py-1'>
 							{isLoadingMoreContacts && <ChatSkeletonLoader count={3} />}
 						</div>
