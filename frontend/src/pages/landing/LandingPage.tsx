@@ -1,5 +1,7 @@
+import LazyImage from "@/components/chat/LazyImage";
 import Button from "@/components/ui/Button";
 import { Link } from "react-router-dom";
+
 
 const LandingPage = () => {
 	return (
@@ -12,7 +14,7 @@ const LandingPage = () => {
 				<div className='grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center'>
 					<div className='flex flex-col items-start lg:col-span-5 space-y-6 max-w-xl'>
 						<div className='flex items-center gap-2 group'>
-							<img
+							<LazyImage
 								src='logo.png'
 								alt='ThreadX Icon'
 								className='h-10 w-10 rounded-[10px]'
@@ -65,10 +67,10 @@ const LandingPage = () => {
 							</div>
 
 							<div className='overflow-hidden rounded-b-xl bg-[#060415]'>
-								<img
+								<LazyImage
 									src='dashboard_.png'
 									alt='ThreadX Interactive Architecture Dashboard Preview'
-									className='w-full h-auto opacity-85 group-hover:opacity-100 transition-opacity duration-500 object-cover select-none pointer-events-none'
+									className='w-full h-auto min-h-75 opacity-85 group-hover:opacity-100 transition-opacity duration-500 select-none pointer-events-none'
 								/>
 							</div>
 						</div>

@@ -1,11 +1,12 @@
+import LazyImage from "@/components/chat/LazyImage";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { useAuthStore } from "@/store/useAuthStore";
-import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { loginSchema, type LoginFormData } from "@/schemas/authSchema";
-import { LuLoader } from "react-icons/lu";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useGoogleLogin } from "@react-oauth/google";
+import { useState } from "react";
+import { LuLoader } from "react-icons/lu";
+import { Link, useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
 	const navigate = useNavigate();
@@ -96,7 +97,7 @@ const LoginPage = () => {
 					<div className='hidden lg:flex flex-col items-start lg:col-span-5 space-y-6 max-w-md'>
 						<Link to='/landing' className='flex items-center gap-2 group'>
 							<div className='relative h-10 w-10 rounded-[10px] bg-[#0c0926] border border-[#7556d3]/20 group-hover:border-[#7556d3]/50 transition-colors duration-300 overflow-hidden'>
-								<img
+								<LazyImage
 									src='logo.png'
 									alt='ThreadX'
 									className='h-full w-full object-cover'
@@ -130,7 +131,7 @@ const LoginPage = () => {
 									to='/landing'
 									className='text-[10px] font-medium text-zinc-200 hover:text-white transition-colors'>
 									<div className='flex flex-col items-center gap-2'>
-										<img
+										<LazyImage
 											src='logo.png'
 											alt='ThreadX'
 											className='h-8 w-8 rounded-lg object-contain'

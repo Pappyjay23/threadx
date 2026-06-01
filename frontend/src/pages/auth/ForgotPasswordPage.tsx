@@ -1,14 +1,15 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
 import { authApi } from "@/api/auth";
+import LazyImage from "@/components/chat/LazyImage";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import {
 	forgotPasswordSchema,
 	type ForgotPasswordFormData,
 } from "@/schemas/authSchema";
-import Input from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
 import type { ErrorResponse } from "@/types/auth";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const ForgotPasswordPage: React.FC = () => {
 	const [formData, setFormData] = useState<ForgotPasswordFormData>({
@@ -81,7 +82,7 @@ const ForgotPasswordPage: React.FC = () => {
 				<div className='flex items-center justify-between gap-4 mb-4'>
 					<div className='flex items-center gap-1 group'>
 						<div className='relative h-7 w-7 rounded-[7px] bg-[#0c0926] border border-[#7556d3]/20 group-hover:border-[#7556d3]/50 transition-colors duration-300 overflow-hidden'>
-							<img
+							<LazyImage
 								src='logo.png'
 								alt='ThreadX'
 								className='h-full w-full object-cover'

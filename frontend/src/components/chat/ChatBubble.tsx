@@ -5,6 +5,8 @@ import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import HighlightedText from "./HighlightedText";
 import ImageLightbox from "./ImageLightbox";
 import MessageDropdown from "./MessageDropdown";
+import LazyImage from "./LazyImage";
+
 
 interface ChatBubbleProps {
 	message: Message;
@@ -89,11 +91,11 @@ const ChatBubble = ({
 							)}
 
 							{message.image && (
-								<img
+								<LazyImage
 									src={message.image}
 									alt='Shared image'
 									onClick={() => setLightboxOpen(true)}
-									className='w-full max-w-xs object-cover rounded-sm cursor-zoom-in transition-opacity duration-200 hover:opacity-90 select-none'
+									className='w-full max-w-xs rounded-sm cursor-zoom-in transition-opacity duration-200 hover:opacity-90 select-none'
 								/>
 							)}
 							{message.text && (

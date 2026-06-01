@@ -1,4 +1,6 @@
 import { getInitials } from "@/utils/helpers";
+import LazyImage from "./LazyImage";
+
 
 interface PresenceAvatarProps {
 	src?: string;
@@ -29,7 +31,7 @@ const PresenceAvatar = ({
 		<div className='relative inline-block shrink-0 select-none'>
 			{src ? (
 				<div className='relative'>
-					<img
+					<LazyImage
 						src={src}
 						alt='Avatar'
 						className={`${dimensions[size]} object-cover bg-[#0c0926]`}
