@@ -2,11 +2,12 @@ import useSound from "@/hooks/useSound";
 import { useAuthStore } from "@/store/useAuthStore";
 import useChatStore from "@/store/useChatStore";
 import type { ActiveTab } from "@/types/chat";
+import { getInitials } from "@/utils/helpers";
 import { FiLogOut, FiVolume2, FiVolumeX } from "react-icons/fi";
 import { IoChatbubblesOutline } from "react-icons/io5";
 import { RxPeople } from "react-icons/rx";
 import { useNavigate } from "react-router-dom";
-import { getInitials } from "@/utils/helpers";
+import LazyImage from "../chat/LazyImage";
 
 interface FloatingSidebarProps {
 	activeTab: ActiveTab;
@@ -18,7 +19,7 @@ const FloatingSidebar = ({ activeTab, setActiveTab }: FloatingSidebarProps) => {
 	const { logout, user, onlineUsers } = useAuthStore();
 	const { isSoundEnabled, toggleSound } = useChatStore();
 	const { playMouseClickSound } = useSound();
-	
+
 	const isOnline = user && onlineUsers.includes(user._id.toString());
 
 	const fullName = user
@@ -65,7 +66,7 @@ const FloatingSidebar = ({ activeTab, setActiveTab }: FloatingSidebarProps) => {
 					<button
 						onClick={() => setActiveTab("chats")}
 						className='p-0.5 rounded-full text-white/40 hover:text-white/80 hover:bg-white/5 transition-all duration-300 ease-in-out cursor-pointer border-primary/50 border'>
-						<img
+						<LazyImage
 							src='logo.png'
 							alt='ThreadX Icon'
 							className='h-8 w-8 object-cover rounded-full'
@@ -96,7 +97,7 @@ const FloatingSidebar = ({ activeTab, setActiveTab }: FloatingSidebarProps) => {
 						className='relative group p-0.5 rounded-full text-white/40 hover:text-white/80 hover:bg-white/5 transition-all duration-300 ease-in-out cursor-pointer border-primary/50 border-[0.5px]'>
 						{user?.picture ? (
 							<div className='relative'>
-								<img
+								<LazyImage
 									src={user.picture}
 									alt='Profile Avatar'
 									className='h-8 w-8 object-cover rounded-full'

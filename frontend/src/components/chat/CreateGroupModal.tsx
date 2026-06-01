@@ -13,6 +13,8 @@ import Input from "../ui/Input";
 import { ChatSkeletonLoader } from "./ChatSkeletonLoader";
 import PresenceAvatar from "./PresenceAvatar";
 import Button from "../ui/Button";
+import LazyImage from "./LazyImage";
+
 
 interface CreateGroupModalProps {
 	isOpen: boolean;
@@ -211,10 +213,10 @@ const CreateGroupModal = ({ isOpen, onClose }: CreateGroupModalProps) => {
 							disabled={isUploading}
 							className='relative group shrink-0'>
 							{groupAvatar ? (
-								<img
+								<LazyImage
 									src={groupAvatar}
 									alt='Group avatar'
-									className='w-16 h-16 rounded-2xl object-cover border-2 border-primary/30'
+									className='w-16 h-16 rounded-2xl border-2 border-primary/30'
 								/>
 							) : (
 								<div className='w-16 h-16 rounded-2xl bg-primary/10 border-2 border-dashed border-primary/30 flex items-center justify-center text-primary/40 group-hover:border-primary/60 group-hover:text-primary transition-all duration-300 cursor-pointer overflow-hidden'>

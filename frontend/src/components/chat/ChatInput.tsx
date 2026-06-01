@@ -13,6 +13,8 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import ChatTextArea from "./ChatTextArea";
 import FormattingToolbar from "./FormattingToolbar";
+import LazyImage from "./LazyImage";
+
 
 interface ChatInputProps {
 	onSendMessage: (
@@ -271,10 +273,10 @@ const ChatInput = ({ onSendMessage }: ChatInputProps) => {
 			{imagePreview && (
 				<div className='w-full md:w-[90%] mx-auto mb-2 flex items-center gap-2'>
 					<div className='relative inline-block'>
-						<img
+						<LazyImage
 							src={imagePreview}
 							alt='Preview'
-							className='h-16 w-16 object-cover rounded-lg border border-primary/20'
+							className='h-16 w-16 rounded-lg border border-primary/20'
 						/>
 						<button
 							type='button'

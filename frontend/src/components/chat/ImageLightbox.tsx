@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { FiX, FiDownload } from "react-icons/fi";
+import LazyImage from "./LazyImage";
 
 interface ImageLightboxProps {
 	src: string;
@@ -77,10 +78,11 @@ const ImageLightbox = ({ src, alt, isOpen, onClose }: ImageLightboxProps) => {
 					</div>
 
 					{/* Image */}
-					<img
+					<LazyImage
 						src={src}
 						alt={alt ?? "Shared image"}
-						className='w-full max-h-[80vh] object-contain rounded-lg border border-primary/10'
+						imgClassName='object-contain max-h-[80vh]'
+						className='w-fit mx-auto rounded-lg border border-primary/10'
 					/>
 				</div>
 			</div>
